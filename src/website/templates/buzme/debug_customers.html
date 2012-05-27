@@ -1,0 +1,15 @@
+<h1> Debug Customer List </h1>
+
+{% if customers_qs %} 
+<ol>
+	{% for customer in customers_qs %}
+	<li> 
+		<b>{{ customer.name }}</b>
+		party of <b>{{ customer.party_size }}.</b>
+		Phone # <b>{{ customer.phone }}</b>
+	</li>
+	{% endfor %}
+<ol>
+{% else %}
+No Customers
+{% endif %}
