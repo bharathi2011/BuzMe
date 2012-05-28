@@ -1,0 +1,9 @@
+<h1>Sign In</h1>
+<form>
+	{% if failure_message %}
+		<p>{{ failure_message }}</p>
+	{% endif %}
+	<p>User Name: <input type="text" name="username" value="{{ username }}"></input></p>
+	<p>Password: <input type="password" name="password"></input</p>
+	<p><input type="submit" value="Sign In"></input></p>
+</form>
