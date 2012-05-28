@@ -156,3 +156,7 @@ LOGGING = {
         },
     }
 }
+
+FIXTURE_DIRS = (
+    "%s/fixtures" % os.path.dirname(__file__),
+)

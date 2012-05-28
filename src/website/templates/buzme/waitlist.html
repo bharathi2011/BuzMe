@@ -1,0 +1,8 @@
+<h1>Waitlist for {{ waitlist.restaurant.name }}</h1>
+<ul>
+	{% for customer in waitlist.customers.all %}
+	<li>
+		{% include 'buzme\waitlist_customer.html' %}
+	</li>
+	{% endfor %}
+</ul>

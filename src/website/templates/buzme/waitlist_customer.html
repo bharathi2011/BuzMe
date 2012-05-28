@@ -1,0 +1,7 @@
+{{ customer.name }} ({{ customer.party_size }}) {{ customer.get_status_display }}
+<form method="get" action="/customer/{{ customer.id }}/summon">
+	<input type="submit" value="Summon">
+</form>
+<form method="get" action="/customer/{{ customer.id }}/remove">
+	<input type="submit" value="Remove">
+</form>

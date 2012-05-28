@@ -15,5 +15,8 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     url(r'^admin/', include(admin.site.urls)),
     
-    url(r'^customers/', 'buzme.views.debug_customers_all'),
+    url(r'^customers/$', 'buzme.views.debug_customers_all'),
+    url(r'^customer/(\d+)/summon/$', 'buzme.views.summon_customer'),
+    url(r'^customer/(\d+)/remove/$', 'buzme.views.remove_customer'),
+    url(r'^waitlist/(\d+)/$', 'buzme.views.show_waitlist'),
 )
