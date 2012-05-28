@@ -1,0 +1,47 @@
+<head>
+	<title> Restaurant Name </title>
+</head>
+
+<body>
+
+<div class="btn">
+      <td><input type="submit" value="View Waiting"">
+      <td><input type="submit" value="View Notified">
+      <td><input type="submit" value="View All">
+<div>
+
+<table border="1">
+  <tr>
+    <th> Customer Name </th>
+    <th> Group Size </th>
+    <th> Phone Number </th>
+    <th> Wait Time <th>
+  </tr>
+  {% for customer in customers %}
+    <tr>
+      <td>{{customer.customer_name}}</td>
+      <td>{{customer.size}}</td>
+      <td>{{customer.phone_number}}</td>
+      <td>{{customer.wait_time}}</td>
+      <td><form method="get" action="/customer/{{ customer.id }}/Notify">
+        <input type="submit" value="Notify"></td>
+      <td><form method="get" action="/customer/{{ customer.id }}/Remove">
+        <input type="submit" value="Remove"></td>
+    </tr>
+  {% endfor %}
+</table>
+
+<form action="/customer_details/" method="post">
+	<p>Name:<input type="text" name="name"></p>
+	<p>Party Size:<input type="text" name="party_size"></p>
+	<p>Phone Number:<input type="text" name="phone_number"></p>
+	<p>Email:<input type="text" name="email"></p>
+        <form method="get" action="/customer_details/{{ customer.id }}/Add">
+        <input type="submit" value="Add"></td>
+        <form method="get" action="/customer_details/{{ customer.id }}/Clear">
+        <input type="submit" value="Clear"></td>
+</form>
+
+</body>
+</html>
+
