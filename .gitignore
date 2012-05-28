@@ -1,3 +1,5 @@
 # Temporary Files
 sqlite.db
 *~
+.DS_Store
+*.swp
