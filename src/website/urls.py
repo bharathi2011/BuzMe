@@ -19,4 +19,6 @@ urlpatterns = patterns('',
     url(r'^customer/(\d+)/summon/$', 'buzme.views.summon_customer'),
     url(r'^customer/(\d+)/remove/$', 'buzme.views.remove_customer'),
     url(r'^waitlist/(\d+)/$', 'buzme.views.show_waitlist'),
+    
+    url(r'^debug/misc/$', 'buzme.views.debug_misc'),
 )
