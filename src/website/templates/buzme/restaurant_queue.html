@@ -5,9 +5,9 @@
 <body>
 
 <div class="btn">
-      <td><input type="submit" value="View Waiting"">
-      <td><input type="submit" value="View Notified">
-      <td><input type="submit" value="View All">
+      <input type="submit" value="View Waiting">
+      <input type="submit" value="View Notified">
+      <input type="submit" value="View All">
 <div>
 
 <table border="1">
@@ -15,31 +15,32 @@
     <th> Customer Name </th>
     <th> Group Size </th>
     <th> Phone Number </th>
-    <th> Wait Time <th>
+<!--      <th> Wait Time <th> -->
+    <th> Status </th>
   </tr>
-  {% for customer in customers %}
+  {% for customer in waitlist.customers.all %}
     <tr>
-      <td>{{customer.customer_name}}</td>
-      <td>{{customer.size}}</td>
-      <td>{{customer.phone_number}}</td>
-      <td>{{customer.wait_time}}</td>
-      <td><form method="get" action="/customer/{{ customer.id }}/Notify">
-        <input type="submit" value="Notify"></td>
-      <td><form method="get" action="/customer/{{ customer.id }}/Remove">
-        <input type="submit" value="Remove"></td>
+      <td>{{customer.name}}</td>
+      <td>{{customer.party_size}}</td>
+      <td>{{customer.phone}}</td>
+<!--        <td>{#customer.wait_time}}</td> -->
+      <td>{{customer.get_status_display}}</td>
+      <td><form method="get" action="/customer/{{ customer.id }}/summon">
+        <input type="submit" value="Notify"></form></td>
+      <td><form method="get" action="/customer/{{ customer.id }}/remove">
+        <input type="submit" value="Remove"></form></td>
     </tr>
   {% endfor %}
 </table>
 
-<form action="/customer_details/" method="post">
+<form action="/customers/create_in_waitlist/{{ waitlist.id }}/" method="post">
 	<p>Name:<input type="text" name="name"></p>
 	<p>Party Size:<input type="text" name="party_size"></p>
-	<p>Phone Number:<input type="text" name="phone_number"></p>
-	<p>Email:<input type="text" name="email"></p>
-        <form method="get" action="/customer_details/{{ customer.id }}/Add">
-        <input type="submit" value="Add"></td>
-        <form method="get" action="/customer_details/{{ customer.id }}/Clear">
-        <input type="submit" value="Clear"></td>
+	<p>Phone Number:<input type="text" name="phone"></p>
+<!--  	<p>Email:<input type="text" name="email"></p>  -->
+	{% csrf_token %}
+    <input type="submit" value="Add">
+    <button>Clear</button>
 </form>
 
 </body>

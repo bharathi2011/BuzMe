@@ -1,8 +1,10 @@
 # Create your views here.
-from django.shortcuts import render_to_response, get_object_or_404, redirect
+from django.shortcuts import render, render_to_response, get_object_or_404, redirect
 from django.http import HttpResponse
 from models import Customer, WaitList, Restaurant
 from django.contrib import auth
+from django.core.context_processors import csrf
+from django.views.decorators.csrf import csrf_protect
 
 def debug_customers_all(request):
     return render_to_response('buzme/debug_customers.html',
@@ -14,6 +16,21 @@ def summon_customer(request, customer_id):
 def remove_customer(request, customer_id):
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.REMOVED)
 
+def create_in_waitlist(request, waitlist_id):
+    name = None
+    if 'name' in request.POST:
+        name = request.POST['name']
+    party_size = None
+    if 'party_size' in request.POST:
+        party_size = request.POST['party_size']
+    phone = None
+    if 'phone' in request.POST:
+        phone = request.POST['phone']
+    wl = get_object_or_404(WaitList, pk=waitlist_id)
+    c = Customer(name = name, party_size = party_size, phone = phone, waitlist = wl)
+    c.save()
+    return redirect('/waitlist/%s/' % waitlist_id)
+
 # Helper for summon_customer and remove_customer
 def set_customer_status(request, customer_id, status):
     c = get_object_or_404(Customer, pk=customer_id)
@@ -21,9 +38,10 @@ def set_customer_status(request, customer_id, status):
     c.save()
     return redirect('/waitlist/%d/' % c.waitlist.id)
    
+@csrf_protect
 def show_waitlist(request, waitlist_id):
     wl = get_object_or_404(WaitList, pk=waitlist_id)
-    return render_to_response('buzme/waitlist.html',
+    return render(request, 'buzme/restaurant_queue.html',
                               {'waitlist': wl})
 
 def signin(request, restaurant_id):
