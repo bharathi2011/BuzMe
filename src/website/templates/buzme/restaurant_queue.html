@@ -1,48 +1,194 @@
-<head>
-	<title> Restaurant Name </title>
-</head>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>buzme</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
 
-<body>
+    <!-- Le styles -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <link href="/static/css/buzme.css" rel="stylesheet">
+    <style type="text/css">
+      body {
+        padding-top: 60px;
+        padding-bottom: 40px;
+      }
+      .sidebar-nav {
+        padding: 9px 0;
+      }
+    </style>
+    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
 
-<div class="btn">
-      <input type="submit" value="View Waiting">
-      <input type="submit" value="View Notified">
-      <input type="submit" value="View All">
-<div>
+    <!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
 
-<table border="1">
-  <tr>
-    <th> Customer Name </th>
-    <th> Group Size </th>
-    <th> Phone Number </th>
-<!--      <th> Wait Time <th> -->
-    <th> Status </th>
-  </tr>
-  {% for customer in waitlist.customers.all %}
-    <tr>
-      <td>{{customer.name}}</td>
-      <td>{{customer.party_size}}</td>
-      <td>{{customer.phone}}</td>
-<!--        <td>{#customer.wait_time}}</td> -->
-      <td>{{customer.get_status_display}}</td>
-      <td><form method="get" action="/customer/{{ customer.id }}/summon">
-        <input type="submit" value="Notify"></form></td>
-      <td><form method="get" action="/customer/{{ customer.id }}/remove">
-        <input type="submit" value="Remove"></form></td>
-    </tr>
-  {% endfor %}
-</table>
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="/static/ico/favicon.ico">
+    <link rel="apple-touch-icon-precomposed" sizes="144x144" href="/static/ico/apple-touch-icon-144-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="114x114" href="/static/ico/apple-touch-icon-114-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" sizes="72x72" href="/static/ico/apple-touch-icon-72-precomposed.png">
+    <link rel="apple-touch-icon-precomposed" href="/static/ico/apple-touch-icon-57-precomposed.png">
+  </head>
 
-<form action="/customers/create_in_waitlist/{{ waitlist.id }}/" method="post">
-	<p>Name:<input type="text" name="name"></p>
-	<p>Party Size:<input type="text" name="party_size"></p>
-	<p>Phone Number:<input type="text" name="phone"></p>
-<!--  	<p>Email:<input type="text" name="email"></p>  -->
+  <body>
+
+    <div class="navbar navbar-fixed-top">
+      <div class="navbar-inner">
+        <div class="container-fluid">
+          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </a>
+          <a class="brandLarge" href="#">buzme</a>
+          <div class="btn-group pull-right">
+            <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
+              <i class="icon-user"></i> Admin
+              <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="#">Profile</a></li>
+              <li class="divider"></li>
+              <li><a href="#">Sign Out</a></li>
+            </ul>
+          </div>
+          <div class="nav-collapse">
+            <ul class="nav">
+              <li><a href="#about">About</a></li>
+              <li><a href="#contact">Contact</a></li>
+              <li class="active"><a href="#">Queue</a></li>	      
+            </ul>
+	  </div><!--/.nav-collapse -->
+	  <a class="brand">{{restaurant_name}}</a>
+        </div>
+      </div>
+    </div>
+
+      <div class="container-fluid">
+      <div class="row-fluid">
+
+        <div class="span3">
+
+<form class="well form-vertical" action="/customers/create_in_waitlist/{{ waitlist.id }}/" method="post">
+  <fieldset>
+    <legend>Add Patron</legend>
+    <div class="control-group">
+      <div class="controls"> 
+        <div class="input-prepend">
+         <span class="add-on"><i class="icon-user"></i></span>
+        <input type="text" class="input-medium" id="input01" placeholder="Patron Name" name="name"> 
+       </div>
+      </div>
+      <div class="controls"> 
+        <div class="input-prepend">
+         <span class="add-on"><i class="icon-volume-up"></i></span>
+        <input type="text" class="input-medium" id="input02" placeholder="Phone" name="phone"> 
+       </div>
+      </div>
+      <div class="controls"> 
+        <div class="input-prepend">
+         <span class="add-on"><i class="icon-envelope"></i></span>
+         <input type="text" class="input-medium" id="input03" placeholder="email"> 
+        </div>
+      </div>
+      <div class="controls"> 
+        <div class="input-prepend">
+         <span class="add-on"><i class="icon-user"></i><i class="icon-user"></i></span>
+        <input type="text" class="input-medium" id="input04" placeholder="group size" name="party_size"> 
+        </div>
+      </div>
+ 
+    </div>
+  </fieldset>
 	{% csrf_token %}
-    <input type="submit" value="Add">
-    <button>Clear</button>
+    <div class="btn-group">
+    <div class="pull-right">
+      <button type="submit" class="btn btn-info btn-large pull-right">Add</button>
+    </div>
+    <div class="pull-left">
+      <button type="reset" class="btn btn-large">clear</button>
+    </div>
+  </div>
 </form>
 
-</body>
-</html>
+        </div>
 
+        <div class="span6">
+         <div class="well well-gray">
+           <CENTER> <legend> Queue </legend> </CENTER>
+         <table id="rstrntQ" class="table table-striped table-condensed" width="100%">
+             <th> Patron </th>
+             <th> Size </th>
+             <th> Phone </th>
+             <th> Wait </th>
+             <th> </th>
+             <th> Status </th>
+           {% for customer in waitlist.customers.all %}
+             <tr>
+               <td>{{customer.name}}</td>
+               <td>{{customer.party_size}}</td>
+               <td>{{customer.phone}}</td>
+               <td>TBD</td>
+               <td> 
+                <div class="btn-group">
+                  <form method="get" action="/customer/{{ customer.id }}/summon" class="btn btn-inverse"><button class="btn btn-info" type="submit"><span class="icon-bell icon-white"></span> Summon </button></form>
+                  <button data-toggle="dropdown" class="btn btn-info dropdown-toggle"><span class="caret"></span> </button></form>
+                  <ul class="dropdown-menu">
+                   <li><form method="get" action="" ><button type="submit" class="btn btn-success"><span class="icon-ok icon-white"></span> Checkin </button></form></li>
+                   <li><form method="get" action="/customer/{{ customer.id }}/remove"><button type="submit" class="btn btn-danger"><span class="icon-trash icon-white"></span> Remove </button></form></li>
+                 </ul>
+                </div>
+               </td>
+               <td>{{customer.get_status_display}}</td>
+               </div>
+             </tr>
+           {% endfor %}
+         </table>
+         </div>
+         <div class="btn-group">
+           <button class="btn">waiting</button>
+           <button class="btn">notified</button>
+           <button class="btn">all</button>
+         </div>
+        </div>
+
+
+        <div class="span3">
+         <div class="well">
+         <legend> Recent Activities </legend>
+         </div>
+        </div>
+     </div> 
+    
+
+      <hr>
+
+      <footer>
+        <p>&copy; buzme 2012</p>
+      </footer>
+
+    </div><!--/.fluid-container-->
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="/static/js/jquery.js"></script>
+    <script src="/static/js/bootstrap-transition.js"></script>
+    <script src="/static/js/bootstrap-alert.js"></script>
+    <script src="/static/js/bootstrap-modal.js"></script>
+    <script src="/static/js/bootstrap-dropdown.js"></script>
+    <script src="/static/js/bootstrap-scrollspy.js"></script>
+    <script src="/static/js/bootstrap-tab.js"></script>
+    <script src="/static/js/bootstrap-tooltip.js"></script>
+    <script src="/static/js/bootstrap-popover.js"></script>
+    <script src="/static/js/bootstrap-button.js"></script>
+    <script src="/static/js/bootstrap-collapse.js"></script>
+    <script src="/static/js/bootstrap-carousel.js"></script>
+    <script src="/static/js/bootstrap-typeahead.js"></script>
+
+  </body>
+</html>
