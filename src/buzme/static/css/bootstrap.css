@@ -1772,6 +1772,20 @@ table .span24 {
   *margin-left: 0;
 }
 
+.icon-group {
+  background-image: url("../img/glyphicons/glyphicons_042_group.png");
+  background-position: -5px      0;
+  width: 14px;
+  height: 18px;
+}
+
+.icon-iphone {
+  background-image: url("../img/buzme_iphone_icon.png");
+  background-position: 0px 0px;
+  height: 20px;
+}
+
+
 .icon-white {
   background-image: url("../img/glyphicons-halflings-white.png");
 }

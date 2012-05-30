@@ -79,29 +79,24 @@
     <div class="control-group">
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-user"></i></span>
-        <input type="text" class="input-medium" id="input01" placeholder="Patron Name" name="name"> 
+         <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" placeholder="patron name" name="name"> 
        </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-volume-up"></i></span>
-        <input type="text" class="input-medium" id="input02" placeholder="Phone" name="phone"> 
+         <span class="add-on"><i class="icon-iphone"></i></span><input type="text" id="input02" placeholder="phone" name="phone"> 
        </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-envelope"></i></span>
-         <input type="text" class="input-medium" id="input03" placeholder="email"> 
+         <span class="add-on"><i class="icon-envelope"></i></span><input type="text" placeholder="email"> 
         </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-user"></i><i class="icon-user"></i></span>
-        <input type="text" class="input-medium" id="input04" placeholder="group size" name="party_size"> 
+         <span class="add-on"><i class="icon-group"></i></span><input type="text" id="input04" placeholder="group size" name="party_size"> 
         </div>
       </div>
- 
     </div>
   </fieldset>
 	{% csrf_token %}
@@ -110,7 +105,7 @@
       <button type="submit" class="btn btn-info btn-large pull-right">Add</button>
     </div>
     <div class="pull-left">
-      <button type="reset" class="btn btn-large">clear</button>
+      <button type="reset" class="btn btn-large">Clear</button>
     </div>
   </div>
 </form>
@@ -121,25 +116,23 @@
          <div class="well well-gray">
            <CENTER> <legend> Queue </legend> </CENTER>
          <table id="rstrntQ" class="table table-striped table-condensed" width="100%">
-             <th> Patron </th>
-             <th> Size </th>
-             <th> Phone </th>
-             <th> Wait </th>
-             <th> </th>
-             <th> Status </th>
+             <th> patron </th>
+             <th> party of </th>
+             <th> waiting for </th>
+             <th> action </th>
+             <th> status </th>
            {% for customer in waitlist.customers.all %}
              <tr>
                <td>{{customer.name}}</td>
                <td>{{customer.party_size}}</td>
-               <td>{{customer.phone}}</td>
                <td>TBD</td>
                <td> 
                 <div class="btn-group">
-                  <form method="get" action="/customer/{{ customer.id }}/summon" class="btn btn-inverse"><button class="btn btn-info" type="submit"><span class="icon-bell icon-white"></span> Summon </button></form>
-                  <button data-toggle="dropdown" class="btn btn-info dropdown-toggle"><span class="caret"></span> </button></form>
+                  <button onclick="location='/customer/{{ customer.id }}/summon'" class="btn btn-info"><span class="icon-bell icon-white"></span> Summon </button>
+                  <a data-toggle="dropdown" class="btn btn-info dropdown-toggle"><span class="caret"></span> </a>
                   <ul class="dropdown-menu">
-                   <li><form method="get" action="" ><button type="submit" class="btn btn-success"><span class="icon-ok icon-white"></span> Checkin </button></form></li>
-                   <li><form method="get" action="/customer/{{ customer.id }}/remove"><button type="submit" class="btn btn-danger"><span class="icon-trash icon-white"></span> Remove </button></form></li>
+                   <li><a href="#"><span class="icon-ok"></span> Checkin</li>
+                   <li><a href="/customer/{{ customer.id }}/remove"><span class="icon-trash"></span> Remove </a></li>
                  </ul>
                 </div>
                </td>
@@ -152,6 +145,7 @@
          <div class="btn-group">
            <button class="btn">waiting</button>
            <button class="btn">notified</button>
+           <button class="btn">served</button>
            <button class="btn">all</button>
          </div>
         </div>
