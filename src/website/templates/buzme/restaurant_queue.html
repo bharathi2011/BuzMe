@@ -79,22 +79,22 @@
     <div class="control-group">
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" class="input-medium" placeholder="patron name" name="name"> 
+         <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" placeholder="patron name" name="name"> 
        </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-iphone"></i></span><input type="text" id="input02" class="input-medium" placeholder="phone" name="phone"> 
+         <span class="add-on"><i class="icon-iphone"></i></span><input type="text" id="input02" placeholder="phone" name="phone"> 
        </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-envelope"></i></span><input type="text" id="input03" class="input-medium" placeholder="email"> 
+         <span class="add-on"><i class="icon-envelope"></i></span><input type="text" placeholder="email"> 
         </div>
       </div>
       <div class="controls"> 
         <div class="input-prepend">
-         <span class="add-on"><i class="icon-group"></i></span><input type="text" id="input04" class="input-medium" placeholder="group size" name="party_size"> 
+         <span class="add-on"><i class="icon-group"></i></span><input type="text" id="input04" placeholder="group size" name="party_size"> 
         </div>
       </div>
     </div>
@@ -119,7 +119,6 @@
              <th> patron </th>
              <th> party of </th>
              <th> waiting for </th>
-             <th> action </th>
              <th> status </th>
            {% for customer in waitlist.customers.all %}
              <tr>
@@ -128,15 +127,24 @@
                <td>TBD</td>
                <td> 
                 <div class="btn-group">
-                  <button onclick="location='/customer/{{ customer.id }}/summon'" class="btn btn-info"><span class="icon-bell icon-white"></span> Summon </button>
-                  <a data-toggle="dropdown" class="btn btn-info dropdown-toggle"><span class="caret"></span> </a>
+                  <a data-toggle="dropdown" 
+                   {% if customer.get_status_display == "Summoned" %}
+                    class="btn btn-warning dropdown-toggle"
+                   {% elif customer.get_status_display == "Removed" %}
+                    class="btn btn-danger dropdown-toggle"
+                   {% elif customer.get_status_display == "Waiting" %}
+                    class="btn btn-info dropdown-toggle"
+                   {% endif %}
+                   >
+                    {{customer.get_status_display}}
+                   <span class="caret"></span> </a>
                   <ul class="dropdown-menu">
+                   <li><a href="/customer/{{ customer.id }}/summon"><span class="icon-bell"></span> Summon</li>
                    <li><a href="#"><span class="icon-ok"></span> Checkin</li>
                    <li><a href="/customer/{{ customer.id }}/remove"><span class="icon-trash"></span> Remove </a></li>
                  </ul>
                 </div>
                </td>
-               <td>{{customer.get_status_display}}</td>
                </div>
              </tr>
            {% endfor %}
@@ -144,7 +152,8 @@
          </div>
          <div class="btn-group">
            <button class="btn">waiting</button>
-           <button class="btn">notified</button>
+           <button class="btn">summoned</button>
+           <button class="btn">removed</button>
            <button class="btn">served</button>
            <button class="btn">all</button>
          </div>
