@@ -9,7 +9,10 @@ from django.views.decorators.csrf import csrf_protect
 def debug_customers_all(request):
     return render_to_response('buzme/debug_customers.html',
                               {'customers_qs': Customer.objects.all()})
-    
+
+def checkin_customer(request, customer_id):
+    return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.CHECKEDIN)
+   
 def summon_customer(request, customer_id):
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
 

@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 # Create your models here.
 class Customer (models.Model):
     class CUSTOMER_STATUS:
-        WAITING, SUMMONED, REMOVED = range(3)
+        WAITING, SUMMONED, CHECKEDIN, REMOVED = range(4)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=10)
     party_size = models.PositiveSmallIntegerField()
@@ -12,6 +12,7 @@ class Customer (models.Model):
     status = models.PositiveSmallIntegerField(
                                               choices=((CUSTOMER_STATUS.WAITING, 'Waiting'), 
                                                        (CUSTOMER_STATUS.SUMMONED, 'Summoned'), 
+                                                       (CUSTOMER_STATUS.CHECKEDIN, 'CheckedIn'), 
                                                        (CUSTOMER_STATUS.REMOVED, 'Removed')), 
                                               default=CUSTOMER_STATUS.WAITING)
     def __unicode__(self):
@@ -22,6 +23,8 @@ class Customer (models.Model):
         return self.status == Customer.CUSTOMER_STATUS.SUMMONED
     def is_removed(self):
         return self.status == Customer.CUSTOMER_STATUS.REMOVED
+    def is_checkedin(self):
+        return self.status == Customer.CUSTOMER_STATUS.CHECKEDIN
     
 class WaitList (models.Model):
     restaurant = models.ForeignKey('Restaurant', related_name='waitlists')
