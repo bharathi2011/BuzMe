@@ -114,8 +114,31 @@
 
         <div class="span6">
          <div class="well well-gray">
-           <CENTER> <legend> Queue </legend> </CENTER>
-         <table id="rstrntQ" class="table table-striped table-condensed" width="100%">
+         <CENTER> <legend> {{ restaurant_name }} Queue </legend> </CENTER>
+         <div class="btn-group" data-toggle="buttons-checkbox">
+           <button 
+             id="btnsummon" class="btn" 
+             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(Summoned)').parent().toggle();">
+             hide summoned
+           </button>
+           <button 
+             id="btnremoved" class="btn" 
+             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(Removed)').parent().toggle();">
+             hide removed
+           </button>
+           <button 
+             id="btnwaiting" class="btn" 
+             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(Waiting)').parent().toggle();">
+             hide waiting
+           </button>
+           <button 
+             id="btncheckedin" class="btn" 
+             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(CheckedIn)').parent().toggle();">
+             hide checked in
+           </button>
+         </div>
+         <br>
+         <table id="rstrntQ" class="table table-condensed table-striped" width="100%">
              <th> patron </th>
              <th> party of </th>
              <th> waiting for </th>
@@ -134,13 +157,15 @@
                     class="btn btn-danger dropdown-toggle"
                    {% elif customer.get_status_display == "Waiting" %}
                     class="btn btn-info dropdown-toggle"
+                   {% elif customer.get_status_display == "CheckedIn" %}
+                    class="btn btn-success dropdown-toggle"
                    {% endif %}
                    >
                     {{customer.get_status_display}}
                    <span class="caret"></span> </a>
                   <ul class="dropdown-menu">
                    <li><a href="/customer/{{ customer.id }}/summon"><span class="icon-bell"></span> Summon</li>
-                   <li><a href="#"><span class="icon-ok"></span> Checkin</li>
+                   <li><a href="/customer/{{ customer.id }}/checkin"><span class="icon-ok"></span> Check In</li>
                    <li><a href="/customer/{{ customer.id }}/remove"><span class="icon-trash"></span> Remove </a></li>
                  </ul>
                 </div>
@@ -149,20 +174,14 @@
              </tr>
            {% endfor %}
          </table>
-         </div>
-         <div class="btn-group">
-           <button class="btn">waiting</button>
-           <button class="btn">summoned</button>
-           <button class="btn">removed</button>
-           <button class="btn">served</button>
-           <button class="btn">all</button>
-         </div>
+        </div>
         </div>
 
 
         <div class="span3">
          <div class="well">
          <legend> Recent Activities </legend>
+         <div id="recentActivities"> </div>
          </div>
         </div>
      </div> 
@@ -192,6 +211,11 @@
     <script src="/static/js/bootstrap-collapse.js"></script>
     <script src="/static/js/bootstrap-carousel.js"></script>
     <script src="/static/js/bootstrap-typeahead.js"></script>
+<script type="text/javascript">
+  $(document).ready(function(){
+//code goes here
+});
+</script>
 
   </body>
 </html>
