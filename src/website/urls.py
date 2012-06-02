@@ -9,23 +9,30 @@ urlpatterns = patterns('',
     # url(r'^$', 'website.views.home', name='home'),
     # url(r'^website/', include('website.foo.urls')),
 
-    # Uncomment the admin/doc line below to enable admin documentation:
-    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
+    # Login page
+    url(r'^$', 'buzme.views.signin_new'),
 
-    # Uncomment the next line to enable the admin:
+    # signup page
+    url(r'^signup/$', 'buzme.views.signup'),
+
+    # signup page
+    url(r'^signout/$', 'buzme.views.signout'),
+
+    # ADMIN urls
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
     
+    # Customer to Waitlist Binding
     url(r'^customer/(\d+)/summon/$', 'buzme.views.summon_customer'),
     url(r'^customer/(\d+)/remove/$', 'buzme.views.remove_customer'),
     url(r'^customer/(\d+)/checkin/$', 'buzme.views.checkin_customer'),
-    url(r'^customers/create_in_waitlist/(\d+)/$', 'buzme.views.create_in_waitlist'),
+    url(r'^customers/create_in_waitlist/(\d+)/$', 'buzme.views.add_customer_to_waitlist'),
     
-    url(r'^waitlist/(\d+)/$', 'buzme.views.show_waitlist'),
-    
-    url(r'^restaurant/(\d+)/signin/$', 'buzme.views.signin'),
+    # Waitlist urls
+    url(r'^restaurant/(\d+)/$', 'buzme.views.show_waitlist'),
     url(r'^restaurant/(\d+)/signout/$', 'buzme.views.signout'),
     
-    # debug 
+    # Debug urls 
     url(r'^debug/misc/$', 'buzme.views.debug_misc'),
     url(r'^customers/$', 'buzme.views.debug_customers_all'),
 )

@@ -26,20 +26,34 @@ class Customer (models.Model):
     def is_checkedin(self):
         return self.status == Customer.CUSTOMER_STATUS.CHECKEDIN
     
+
+
 class WaitList (models.Model):
     restaurant = models.ForeignKey('Restaurant', related_name='waitlists')
-    
     def __unicode__(self):
         return "Waitlist for %s" % str(self.restaurant)
-    
     def add_customer(self, customer):
         self.customers.add(customer)
 
+
 class Restaurant (models.Model):
-    name = models.CharField(max_length=100)
-    user = models.OneToOneField(User)
-    
+    name         = models.CharField(max_length=100)
+    contactinfo  = models.CharField(max_length=200)
     def __unicode__(self):
         return self.name
-    
-    
+    def add_waitinglist(self, waitlist):
+        self.waitlists.add(waitlist)
+
+
+class RestaurantAdmin (models.Model):
+    adminuser  = models.OneToOneField(User, related_name='restaurantAdminUser', blank=True)
+    restaurant = models.ForeignKey(Restaurant, related_name='restaurantAdministrator', unique=True)
+    nick       = models.CharField(max_length=20)
+    def __unicode__(self):
+        return "admin for restaurant %s is %s"%(self.restaurant, self.adminuser)
+
+class RecentActivity (models.Model):
+    activity = models.CharField(max_length=256)
+    restaurant = models.ForeignKey('Restaurant', related_name='activities')
+    def __unicode__(self):
+        return "%s"%(self.activity)

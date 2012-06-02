@@ -3572,6 +3572,38 @@ input[type="submit"].btn.btn-mini {
   *border-left-color: #ffffff;
 }
 
+.logoSmall {
+  display: block;
+  float: left;
+  padding: 8px 20px 12px;
+  margin-left: -20px;
+  font-size: 20px;
+  font-weight: 200;
+  line-height: 1;
+  color: #dd3131;
+}
+
+.logoXLarge {
+  display: block;
+  padding: 8px 20px 12px;
+  margin-left: -20px;
+  font-size: 100px;
+  font-weight: 500;
+  line-height: 1;
+  color: #dd3131;
+}
+
+.forgotPassword {
+  cursor: pointer;
+  color: #aaaaaa;
+}
+
+.forgotPassword:hover {
+  color: #aaaaaa;
+  text-decoration: none;
+}
+
+
 .navbar {
   *position: relative;
   *z-index: 2;
@@ -3625,17 +3657,6 @@ input[type="submit"].btn.btn-mini {
   font-weight: 200;
   line-height: 1;
   color: #999999;
-}
-
-.navbar .brandLarge {
-  display: block;
-  float: left;
-  padding: 8px 20px 12px;
-  margin-left: -20px;
-  font-size: 20px;
-  font-weight: 200;
-  line-height: 1;
-  color: #dd3131;
 }
 
 .navbar .navbar-text {

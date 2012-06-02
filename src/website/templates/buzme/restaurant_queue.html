@@ -44,16 +44,16 @@
             <span class="icon-bar"></span>
             <span class="icon-bar"></span>
           </a>
-          <a class="brandLarge" href="#">buzme</a>
+          <a class="logoSmall">buzme</a>
           <div class="btn-group pull-right">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
-              <i class="icon-user"></i> Admin
+              <i class="icon-user"></i> {{ admin.nick }}
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu">
               <li><a href="#">Profile</a></li>
               <li class="divider"></li>
-              <li><a href="#">Sign Out</a></li>
+              <li><a href="/signout/">Sign Out</a></li>
             </ul>
           </div>
           <div class="nav-collapse">
@@ -63,7 +63,7 @@
               <li class="active"><a href="#">Queue</a></li>	      
             </ul>
 	  </div><!--/.nav-collapse -->
-	  <a class="brand">{{restaurant_name}}</a>
+	  <a class="brand">{{restaurant.name}}</a>
         </div>
       </div>
     </div>
@@ -143,7 +143,7 @@
              <th> party of </th>
              <th> waiting for </th>
              <th> status </th>
-           {% for customer in waitlist.customers.all %}
+           {% for customer in waitlist.customers.all|dictsort:"status" %}
              <tr>
                <td>{{customer.name}}</td>
                <td>{{customer.party_size}}</td>
@@ -182,6 +182,9 @@
          <div class="well">
          <legend> Recent Activities </legend>
          <div id="recentActivities"> </div>
+           {% for act in restaurant.activities.all|dictsortreversed:"id" %}
+             <div class="muted"> {{ act.activity }} </div>
+           {% endfor %}
          </div>
         </div>
      </div> 
