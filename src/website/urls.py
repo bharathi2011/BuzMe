@@ -15,8 +15,11 @@ urlpatterns = patterns('',
     # signup page
     url(r'^signup/$', 'buzme.views.signup'),
 
-    # signup page
+    # signout redirect page
     url(r'^signout/$', 'buzme.views.signout'),
+
+    # update profile page
+    url(r'^update/$', 'buzme.views.update'),
 
     # ADMIN urls
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
@@ -29,8 +32,8 @@ urlpatterns = patterns('',
     url(r'^customers/create_in_waitlist/(\d+)/$', 'buzme.views.add_customer_to_waitlist'),
     
     # Waitlist urls
-    url(r'^restaurant/(\d+)/$', 'buzme.views.show_waitlist'),
-    url(r'^restaurant/(\d+)/signout/$', 'buzme.views.signout'),
+    url(r'^landing/$', 'buzme.views.landing'),
+    url(r'^landing/signout/$', 'buzme.views.signout'),
     
     # Debug urls 
     url(r'^debug/misc/$', 'buzme.views.debug_misc'),

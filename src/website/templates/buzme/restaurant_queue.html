@@ -35,35 +35,72 @@
   </head>
 
   <body>
+  <div class="modal hide" id="buzmeInfoModal">
+    <div class="modal-header">
+      <div class="logoXLarge">buzme</div>
+    </div>
+    <div class="modal-body">
+      <p>
+        Welcome to a simpler way of managing your patrons.
+        <br>
+        Contact Info: <br>
+        (nnn)-nnn-nnnn <br>
+        contact@buzme.com
+       </p>
+    </div>
+    <div class="modal-footer">
+      <a href="#" class="btn" data-dismiss="modal">Close</a>
+    </div>
+  </div>
 
+  <div class="modal hide" id="profileModal">
+    <div class="modal-header">
+      <h3> Profile for {{ admin.nick }} </h3>
+    </div>
+    <div class="modal-body">
+     <div class="well" id="updateform"> <form action="/update/" method=POST>
+       {% for field in signupFormObj %}
+          <div class="input-prepend">
+           <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
+        </div>
+       {% endfor %}
+     </form> </div>
+    </div>
+    <div class="modal-footer">
+      <button type="submit" onclick="document.forms["updateform"].submit()" class="btn btn-info">Update</button>
+      <button href="#" class="btn" data-dismiss="modal">Close</button>
+    </div>
+  </div>
+
+ 
     <div class="navbar navbar-fixed-top">
       <div class="navbar-inner">
         <div class="container-fluid">
-          <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </a>
-          <a class="logoSmall">buzme</a>
-          <div class="btn-group pull-right">
+	 <ul class="nav">
+           <li> <span class="brand">{{restaurant.name}}</span></li>
+           <li class="divider-vertical"></li>
+           <li class="active"> <a href="#">Waitlist</a> </li>
+           <li><a href="#">...</a></li>
+         </ul>
+
+         <ul class="nav pull-right">
+          <li class="divider-vertical"></li>
+          <li class="logoSmall" data-toggle="modal" href="#buzmeInfoModal"> buzme </li>
+          <li>
+          <div class="btn-group">
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
               <i class="icon-user"></i> {{ admin.nick }}
               <span class="caret"></span>
             </a>
             <ul class="dropdown-menu">
-              <li><a href="#">Profile</a></li>
+              <li><a data-toggle="modal" href="#profileModal">Profile</a></li>
               <li class="divider"></li>
               <li><a href="/signout/">Sign Out</a></li>
             </ul>
           </div>
-          <div class="nav-collapse">
-            <ul class="nav">
-              <li><a href="#about">About</a></li>
-              <li><a href="#contact">Contact</a></li>
-              <li class="active"><a href="#">Queue</a></li>	      
-            </ul>
-	  </div><!--/.nav-collapse -->
-	  <a class="brand">{{restaurant.name}}</a>
+          </li>
+         </ul>
+ 
         </div>
       </div>
     </div>
@@ -114,11 +151,11 @@
 
         <div class="span6">
          <div class="well well-gray">
-         <CENTER> <legend> {{ restaurant_name }} Queue </legend> </CENTER>
-         <div class="btn-group" data-toggle="buttons-checkbox">
+         <CENTER> <legend> Waiting List </legend> </CENTER>
+<!---         <div class="btn-group" data-toggle="buttons-checkbox">
            <button 
              id="btnsummon" class="btn" 
-             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(Summoned)').parent().toggle();">
+             onclick="$('#rstrntQ tr').find('td:nth-child(4):contains(Summoned)').parent().toggle();$('#rstrntQ tr').find('td:nth-child(4):contains(Summon Failed)').parent().toggle();">
              hide summoned
            </button>
            <button 
@@ -137,22 +174,27 @@
              hide checked in
            </button>
          </div>
-         <br>
+----->
+         <input id='WaitlistSearch' type='text' placeholder="Search Waiting List & Activities"/>
+         <a href="#" class="clear_input"> <i class="icon-remove"></i> </a>
+
          <table id="rstrntQ" class="table table-condensed table-striped" width="100%">
-             <th> patron </th>
-             <th> party of </th>
-             <th> waiting for </th>
-             <th> status </th>
+             <th width="30%"> patron </th>
+             <th width="10%"> party of </th>
+             <th width="15%"> waiting for </th>
+             <th width="20%"> status </th>
            {% for customer in waitlist.customers.all|dictsort:"status" %}
              <tr>
-               <td>{{customer.name}}</td>
-               <td>{{customer.party_size}}</td>
-               <td>TBD</td>
-               <td> 
+               <td width="30%">{{customer.name}}</td>
+               <td width="10%">{{customer.party_size}}</td>
+               <td width="15%">TBD</td>
+               <td width="20%"> 
                 <div class="btn-group">
                   <a data-toggle="dropdown" 
                    {% if customer.get_status_display == "Summoned" %}
                     class="btn btn-warning dropdown-toggle"
+                   {% elif customer.get_status_display == "Summon Failed" %}
+                    class="btn btn-inverse dropdown-toggle"
                    {% elif customer.get_status_display == "Removed" %}
                     class="btn btn-danger dropdown-toggle"
                    {% elif customer.get_status_display == "Waiting" %}
@@ -164,9 +206,9 @@
                     {{customer.get_status_display}}
                    <span class="caret"></span> </a>
                   <ul class="dropdown-menu">
-                   <li><a href="/customer/{{ customer.id }}/summon"><span class="icon-bell"></span> Summon</li>
-                   <li><a href="/customer/{{ customer.id }}/checkin"><span class="icon-ok"></span> Check In</li>
-                   <li><a href="/customer/{{ customer.id }}/remove"><span class="icon-trash"></span> Remove </a></li>
+                   <li><a href="/customer/{{ customer.id }}/summon"><span class="icon-bell"></span>Summon</li>
+                   <li><a href="/customer/{{ customer.id }}/checkin"><span class="icon-ok"></span>Check In</li>
+                   <li><a href="/customer/{{ customer.id }}/remove"><span class="icon-trash"></span>Remove</a></li>
                  </ul>
                 </div>
                </td>
@@ -182,9 +224,11 @@
          <div class="well">
          <legend> Recent Activities </legend>
          <div id="recentActivities"> </div>
-           {% for act in restaurant.activities.all|dictsortreversed:"id" %}
-             <div class="muted"> {{ act.activity }} </div>
-           {% endfor %}
+           <table id="ActivitiesTable" class="table table-condensed table-striped" width="100%">
+             {% for act in restaurant.activities.all|dictsortreversed:"id" %}
+               <tr><td><div class="muted"> {{ act }} </div></td></tr>
+             {% endfor %}
+           </table>
          </div>
         </div>
      </div> 
@@ -195,7 +239,6 @@
       <footer>
         <p>&copy; buzme 2012</p>
       </footer>
-
     </div><!--/.fluid-container-->
 
     <!-- Le javascript
@@ -216,7 +259,46 @@
     <script src="/static/js/bootstrap-typeahead.js"></script>
 <script type="text/javascript">
   $(document).ready(function(){
-//code goes here
+$('.clear_input').hide();   
+
+$('#WaitlistSearch').bind('keyup', function() {
+    if ($(this).val().length >= 1) {
+       $('.clear_input').show();
+    } else {
+       $('.clear_input').hide();
+    }
+
+    $('.clear_input').click(function() {
+       $('#WaitlistSearch').val('');
+       $('.clear_input').hide();
+       $('#rstrntQ tr').each(function() {
+          $(this).show();
+       });
+       $('#ActivitiesTable tr').each(function() {
+          $(this).show();
+       });
+    }); 
+
+    var s = new RegExp($('#WaitlistSearch').val(), "i");
+
+    $('#rstrntQ tr').each(function() {
+        if (s.test($(this).text())) $(this).show();
+        else $(this).hide();
+    });
+    $('#ActivitiesTable tr').each(function() {
+        if (s.test($(this).text())) $(this).show();
+        else $(this).hide();
+    });
+});
+
+$('#ActivitiesSearch').bind('keyup', function() {
+    var s = new RegExp(this.value, "i");
+    $('#ActivitiesTable tr').each(function() {
+        if (s.test($(this).text())) $(this).show();
+        else $(this).hide();
+    });
+});
+
 });
 </script>
 

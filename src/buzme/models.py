@@ -4,13 +4,14 @@ from django.contrib.auth.models import User
 # Create your models here.
 class Customer (models.Model):
     class CUSTOMER_STATUS:
-        WAITING, SUMMONED, CHECKEDIN, REMOVED = range(4)
+        WAITING, SUMMON_FAILED, SUMMONED, CHECKEDIN, REMOVED = range(5)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=10)
     party_size = models.PositiveSmallIntegerField()
     waitlist = models.ForeignKey('WaitList', related_name='customers')
     status = models.PositiveSmallIntegerField(
                                               choices=((CUSTOMER_STATUS.WAITING, 'Waiting'), 
+                                                       (CUSTOMER_STATUS.SUMMON_FAILED, 'Summon Failed'), 
                                                        (CUSTOMER_STATUS.SUMMONED, 'Summoned'), 
                                                        (CUSTOMER_STATUS.CHECKEDIN, 'CheckedIn'), 
                                                        (CUSTOMER_STATUS.REMOVED, 'Removed')), 
@@ -21,6 +22,8 @@ class Customer (models.Model):
         return self.status == Customer.CUSTOMER_STATUS.WAITING
     def is_summoned(self):
         return self.status == Customer.CUSTOMER_STATUS.SUMMONED
+    def is_summon_failed(self):
+        return self.status == Customer.CUSTOMER_STATUS.SUMMON_FAILED
     def is_removed(self):
         return self.status == Customer.CUSTOMER_STATUS.REMOVED
     def is_checkedin(self):
@@ -53,7 +56,8 @@ class RestaurantAdmin (models.Model):
         return "admin for restaurant %s is %s"%(self.restaurant, self.adminuser)
 
 class RecentActivity (models.Model):
-    activity = models.CharField(max_length=256)
-    restaurant = models.ForeignKey('Restaurant', related_name='activities')
+    activity      = models.CharField(max_length=256)
+    restaurant    = models.ForeignKey('Restaurant', related_name='activities')
+    activityTime  = models.DateTimeField(auto_now_add=True)
     def __unicode__(self):
-        return "%s"%(self.activity)
+        return "%s %s"%(self.activityTime.strftime("%I:%M %p: "), self.activity)

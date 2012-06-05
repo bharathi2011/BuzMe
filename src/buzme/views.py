@@ -9,6 +9,8 @@ from django.contrib.auth.models import User
 from django import forms
 from django.template import Template, RequestContext
 from django.contrib.auth.decorators import login_required
+from twilio.rest import TwilioRestClient
+from twilio import TwilioRestException
 
 
 class SignupForm(forms.Form):
@@ -37,7 +39,15 @@ def checkin_customer(request, customer_id):
    
 @login_required(login_url='/')
 def summon_customer(request, customer_id):
-    return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
+   c = get_object_or_404(Customer, pk=customer_id)
+   client = TwilioRestClient()
+   try:
+      message = client.sms.messages.create(to=c.phone, from_="+14086001289",
+                     body="Hello %s,Your Table at %s is ready. Please comeby."%(c.name, c.waitlist.restaurant.name))
+   except TwilioRestException:
+      return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
+      
+   return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
 
 @login_required(login_url='/')
 def remove_customer(request, customer_id):
@@ -60,17 +70,17 @@ def add_customer_to_waitlist(request, waitlist_id):
     c.save()
     ract = RecentActivity(activity="%s party of %s Added"%(name, party_size), restaurant=wl.restaurant)
     ract.save()
-    return redirect('/restaurant/%d/' % wl.restaurant.id)
+    return redirect('/landing/')
 
 # Helper for summon_customer and remove_customer
 def set_customer_status(request, customer_id, status):
     c = get_object_or_404(Customer, pk=customer_id)
     c.status = status
     c.save()
-    ract = RecentActivity(activity="%s party of %d %s"%(c.name, c.party_size, c.get_status_display()), 
+    ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
                           restaurant=c.waitlist.restaurant)
     ract.save()
-    return redirect('/restaurant/%d/' % c.waitlist.restaurant.id)
+    return redirect('/landing/')
 
 @csrf_protect
 def signin_new(request):
@@ -105,7 +115,7 @@ def signin_new(request):
         failmsg = 'Authentication failed'
      elif user.is_active:
         auth.login(request, user)
-        return redirect('/restaurant/%d/' % user.restaurantAdminUser.restaurant.id)
+        return redirect('/landing/')
      else:
         failmsg = 'Account %s disabled' % username
   return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form},context_instance=RequestContext(request))
@@ -141,10 +151,42 @@ def signup(request):
   ract.save()
   return redirect('/?status=signup_ok');
 
+def update(request):
+  form = SignupForm(request.POST)
+  u  = request.user
+  ra = u.restaurantAdminUser
+  r  = ra.restaurant
+  if form.is_valid():
+     uname  = form.cleaned_data['username']
+     pwd    = form.cleaned_data['password']
+     uemail = form.cleaned_data['email']
+     nname  = form.cleaned_data['nickname']
+     rcinfo = form.cleaned_data['restcontact']
+
+  ra.nick = nname;
+  r.contactinfo = rcinfo;
+  u.email = uemail;
+  r.save();
+  ra.save();
+  u.save();
+
+  return redirect('/landing/');
+
 @login_required(login_url='/')
-def show_waitlist(request, restaurant_id):
-    rstrnt = get_object_or_404(Restaurant, pk=restaurant_id)
-    return render(request, 'buzme/restaurant_queue.html', {'waitlist':rstrnt.waitlists.all()[0], 'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0]})
+def landing(request):
+    rstrnt = request.user.restaurantAdminUser.restaurant
+    form = SignupForm({
+            'username': request.user.username,
+            'email': request.user.email,
+            'nickname': request.user.restaurantAdminUser.nick,
+            'restname': rstrnt.name,
+            'restcontact': rstrnt.contactinfo,
+       })
+    form.fields['password'].widget.attrs['readonly'] = True
+    form.fields['password1'].widget.attrs['readonly'] = True
+    form.fields['restname'].widget.attrs['readonly'] = True
+
+    return render(request, 'buzme/restaurant_queue.html', {'waitlist':rstrnt.waitlists.all()[0], 'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0], 'signupFormObj':form})
 
 
 def signout(request):
