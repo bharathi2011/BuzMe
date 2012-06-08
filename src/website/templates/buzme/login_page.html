@@ -50,6 +50,7 @@
         <div class="input-prepend">
          <span class="add-on"><i class="icon-asterisk"></i></span><input type="password" name="password" placeholder="password"> 
         </div>
+    <input type="hidden" id="gmtoffsetid" name="gmtoffset"> 
     <label class="checkbox"> <input type="checkbox" name="remember"> Remember Me </label>
     <div> <button type="submit" class="btn btn-info" >Login</button></div>
     <a class="forgotPassword">Forgot Password?</a>
@@ -98,6 +99,8 @@
     <script src="/static/js/bootstrap-typeahead.js"></script>
 <script type="text/javascript">
   $(document).ready(function(){
+    var myDate = new Date();
+    $("input[id=gmtoffsetid]").val(myDate.getTimezoneOffset());
 //code goes here
 });
 </script>

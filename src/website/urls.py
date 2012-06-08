@@ -25,16 +25,23 @@ urlpatterns = patterns('',
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
     
-    # Customer to Waitlist Binding
+    # Customer Waitlist Binding
     url(r'^customer/(\d+)/summon/$', 'buzme.views.summon_customer'),
     url(r'^customer/(\d+)/remove/$', 'buzme.views.remove_customer'),
     url(r'^customer/(\d+)/checkin/$', 'buzme.views.checkin_customer'),
     url(r'^customers/create_in_waitlist/(\d+)/$', 'buzme.views.add_customer_to_waitlist'),
     
     # Waitlist urls
-    url(r'^landing/$', 'buzme.views.landing'),
-    url(r'^landing/signout/$', 'buzme.views.signout'),
-    
+    url(r'^waitlist/signout/$', 'buzme.views.signout'),
+    url(r'^waitlist/(current)/$', 'buzme.views.waitlist'),
+    url(r'^waitlist/archives/([^\\]+)/$', 'buzme.views.waitlist'),
+    url(r'^archive_current/$', 'buzme.views.archive_current'),
+
+    # test urls
+    url(r'^test/add/days/(\d+)/patrons/(\d+)/endstates/(all)/$',  'buzme.views.test_add'),
+    url(r'^test/add/days/(\d+)/patrons/(\d+)/endstates/(checkedin_removed)/$',  'buzme.views.test_add'),
+    url(r'^test/purgeall/$', 'buzme.views.test_purgeall'),
+
     # Debug urls 
     url(r'^debug/misc/$', 'buzme.views.debug_misc'),
     url(r'^customers/$', 'buzme.views.debug_customers_all'),

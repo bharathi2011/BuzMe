@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+import datetime
 
 # Create your models here.
 class Customer (models.Model):
@@ -9,6 +10,8 @@ class Customer (models.Model):
     phone = models.CharField(max_length=10)
     party_size = models.PositiveSmallIntegerField()
     waitlist = models.ForeignKey('WaitList', related_name='customers')
+    dateTag = models.CharField(max_length=20)
+    activityTime  = models.DateTimeField(auto_now_add=True)
     status = models.PositiveSmallIntegerField(
                                               choices=((CUSTOMER_STATUS.WAITING, 'Waiting'), 
                                                        (CUSTOMER_STATUS.SUMMON_FAILED, 'Summon Failed'), 
@@ -30,18 +33,22 @@ class Customer (models.Model):
         return self.status == Customer.CUSTOMER_STATUS.CHECKEDIN
     
 
-
 class WaitList (models.Model):
-    restaurant = models.ForeignKey('Restaurant', related_name='waitlists')
+    restaurant   = models.ForeignKey('Restaurant', related_name='waitlists')
     def __unicode__(self):
         return "Waitlist for %s" % str(self.restaurant)
     def add_customer(self, customer):
         self.customers.add(customer)
+    def get_create_date(self):
+        return "%s"%(self.activityTime.strftime("%m %d %y"))
+    def check_waitlist_expiry(self):
+        t = DateTimeField()
 
 
 class Restaurant (models.Model):
-    name         = models.CharField(max_length=100)
-    contactinfo  = models.CharField(max_length=200)
+    name              = models.CharField(max_length=100)
+    contactinfo       = models.CharField(max_length=200)
+    client_gmt_offset = models.SmallIntegerField()
     def __unicode__(self):
         return self.name
     def add_waitinglist(self, waitlist):
@@ -59,5 +66,23 @@ class RecentActivity (models.Model):
     activity      = models.CharField(max_length=256)
     restaurant    = models.ForeignKey('Restaurant', related_name='activities')
     activityTime  = models.DateTimeField(auto_now_add=True)
+    dateTag       = models.CharField(max_length=20)
     def __unicode__(self):
-        return "%s %s"%(self.activityTime.strftime("%I:%M %p: "), self.activity)
+       lt = self.activityTime + datetime.timedelta(minutes=-self.restaurant.client_gmt_offset) 
+       return "%s %s"%(lt.strftime("%b%d %I:%M %p: "), self.activity)
+
+
+class ArchiveTag (models.Model):
+    restaurant    = models.ForeignKey('Restaurant', related_name='archivedtags')
+    dateTag       = models.CharField(max_length=20)
+    abstime       = models.DateTimeField()
+    def __unicode__(self):
+       return "%s"%(self.dateTag)
+    @staticmethod
+    def addTag(r, t):
+       t1 = t + datetime.timedelta(minutes=-r.client_gmt_offset)
+       tag = t1.strftime("%b %d")
+       if not ArchiveTag.objects.filter(restaurant__exact=r).filter(dateTag__exact=tag).exists():
+          at = ArchiveTag(dateTag=tag, restaurant=r, abstime = t)
+          at.save()
+       return tag

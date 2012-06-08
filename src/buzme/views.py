@@ -1,7 +1,7 @@
 # Create your views here.
 from django.shortcuts import render, render_to_response, get_object_or_404, redirect
 from django.http import HttpResponse
-from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity
+from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity, ArchiveTag
 from django.contrib import auth
 from django.core.context_processors import csrf
 from django.views.decorators.csrf import csrf_protect
@@ -11,15 +11,27 @@ from django.template import Template, RequestContext
 from django.contrib.auth.decorators import login_required
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
+import datetime
+import csv
+from random import randint
+from datetime import tzinfo, timedelta, datetime
+
+ZERO = timedelta(0)
+
+# A UTC class.
+class UTC(tzinfo):
+    """UTC"""
+    def utcoffset(self, dt):
+        return ZERO
+    def tzname(self, dt):
+        return "UTC"
+    def dst(self, dt):
+        return ZERO
 
 
-class SignupForm(forms.Form):
+class UpdateProfileForm(forms.Form):
     username    = forms.CharField(label="icon-user", max_length=30, 
                      widget=forms.TextInput(attrs={'placeholder': 'Username'}))
-    password    = forms.CharField(label="icon-asterisk", max_length=30, 
-                     widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
-    password1   = forms.CharField(label="icon-asterisk", max_length=30, 
-                     widget=forms.PasswordInput(attrs={'placeholder': 'Retype Password'}))
     email       = forms.EmailField(label="icon-envelope", 
                      widget=forms.TextInput(attrs={'placeholder': 'email'}))
     nickname    = forms.CharField(label="icon-star", max_length=30, 
@@ -28,6 +40,12 @@ class SignupForm(forms.Form):
                      widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home", 
                      widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
+
+class SignupProfileForm(UpdateProfileForm):
+    password    = forms.CharField(label="icon-asterisk", max_length=30, 
+                     widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
+    password1   = forms.CharField(label="icon-asterisk", max_length=30, 
+                     widget=forms.PasswordInput(attrs={'placeholder': 'Retype Password'}))
 
 def debug_customers_all(request):
     return render_to_response('buzme/debug_customers.html',
@@ -66,11 +84,11 @@ def add_customer_to_waitlist(request, waitlist_id):
     if 'phone' in request.POST:
         phone = request.POST['phone']
     wl = get_object_or_404(WaitList, pk=waitlist_id)
-    c = Customer(name = name, party_size = party_size, phone = phone, waitlist = wl)
+    c = Customer(name = name, party_size = party_size, phone = phone, waitlist = wl, dateTag="current")
     c.save()
-    ract = RecentActivity(activity="%s party of %s Added"%(name, party_size), restaurant=wl.restaurant)
+    ract = RecentActivity(activity="%s party of %s Added"%(name, party_size), restaurant=wl.restaurant, dateTag="current")
     ract.save()
-    return redirect('/landing/')
+    return redirect('/waitlist/current/')
 
 # Helper for summon_customer and remove_customer
 def set_customer_status(request, customer_id, status):
@@ -78,16 +96,17 @@ def set_customer_status(request, customer_id, status):
     c.status = status
     c.save()
     ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
-                          restaurant=c.waitlist.restaurant)
+                          restaurant=c.waitlist.restaurant, dateTag="current")
     ract.save()
-    return redirect('/landing/')
+    return redirect('/waitlist/current/')
 
 @csrf_protect
 def signin_new(request):
-  form = SignupForm()
+  form = SignupProfileForm()
   stat = None
   password = None
   username = None
+  gmtoffset = None
 
   if 'status' in request.REQUEST:
      stat = request.REQUEST['status']
@@ -95,6 +114,8 @@ def signin_new(request):
      password = request.REQUEST['password']
   if 'username' in request.REQUEST: 
      username = request.REQUEST['username']
+  if 'gmtoffset' in request.REQUEST: 
+     gmtoffset = request.REQUEST['gmtoffset']
 
   if stat == "signup_exist":
     failmsg = 'Cannot Signup: User Exists'
@@ -115,13 +136,16 @@ def signin_new(request):
         failmsg = 'Authentication failed'
      elif user.is_active:
         auth.login(request, user)
-        return redirect('/landing/')
+        if gmtoffset:
+           user.restaurantAdminUser.restaurant.client_gmt_offset = gmtoffset
+           user.restaurantAdminUser.restaurant.save()
+        return redirect('/waitlist/current/')
      else:
         failmsg = 'Account %s disabled' % username
   return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form},context_instance=RequestContext(request))
  
 def signup(request):
-  form = SignupForm(request.POST)
+  form = SignupProfileForm(request.POST)
   if form.is_valid():
      uname  = form.cleaned_data['username']
      pwd    = form.cleaned_data['password']
@@ -141,52 +165,81 @@ def signup(request):
   else:
     return redirect('/?status=signup_exist')
 
-  r = Restaurant(name = rname, contactinfo = rcinfo)
+  r = Restaurant(name = rname, contactinfo = rcinfo, client_gmt_offset = 0)
   r.save()
   ra = RestaurantAdmin(nick = nname, adminuser=u, restaurant=r)
   ra.save()
   wl = WaitList(restaurant=r)
   wl.save()
-  ract = RecentActivity(activity="Created Restaurant", restaurant=r)
+  ract = RecentActivity(activity="Created Restaurant", restaurant=r, dateTag="current")
   ract.save()
   return redirect('/?status=signup_ok');
 
+
 def update(request):
-  form = SignupForm(request.POST)
+  form = UpdateProfileForm(request.POST)
   u  = request.user
   ra = u.restaurantAdminUser
   r  = ra.restaurant
   if form.is_valid():
      uname  = form.cleaned_data['username']
-     pwd    = form.cleaned_data['password']
      uemail = form.cleaned_data['email']
      nname  = form.cleaned_data['nickname']
      rcinfo = form.cleaned_data['restcontact']
+     rname  = form.cleaned_data['restname']
 
   ra.nick = nname;
   r.contactinfo = rcinfo;
+  r.name = rname;
   u.email = uemail;
   r.save();
   ra.save();
   u.save();
 
-  return redirect('/landing/');
+  return redirect('/waitlist/current/');
 
 @login_required(login_url='/')
-def landing(request):
+def waitlist(request, datetag):
     rstrnt = request.user.restaurantAdminUser.restaurant
-    form = SignupForm({
+    form = UpdateProfileForm({
             'username': request.user.username,
             'email': request.user.email,
             'nickname': request.user.restaurantAdminUser.nick,
             'restname': rstrnt.name,
             'restcontact': rstrnt.contactinfo,
        })
-    form.fields['password'].widget.attrs['readonly'] = True
-    form.fields['password1'].widget.attrs['readonly'] = True
-    form.fields['restname'].widget.attrs['readonly'] = True
+    form.fields['username'].widget.attrs['readonly'] = True
 
-    return render(request, 'buzme/restaurant_queue.html', {'waitlist':rstrnt.waitlists.all()[0], 'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0], 'signupFormObj':form})
+    return render(request, 'buzme/restaurant_queue.html', {
+         'waitlist':rstrnt.waitlists.all()[0], 
+         'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0], 
+         'signupFormObj':form, 
+         'datetag':datetag, 
+         'activities':RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag),
+         'customers':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag),
+         'archivedtags':ArchiveTag.objects.filter(restaurant__exact=rstrnt),
+         'count_waiting':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.WAITING).count,
+         'count_summoned':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.SUMMONED).count,
+         'count_checkedin':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.CHECKEDIN).count,
+         'count_summonfailed':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.SUMMON_FAILED).count,
+         'count_removed':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.REMOVED).count,
+       })
+
+
+@login_required(login_url='/')
+def archive_current(request):
+    rstrnt = request.user.restaurantAdminUser.restaurant
+    for ract in RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact="current"):
+       ract.dateTag = ArchiveTag.addTag(rstrnt, ract.activityTime)
+       ract.save()
+    fc1 = Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0])
+    for c in fc1.filter(status__exact=Customer.CUSTOMER_STATUS.REMOVED):
+       c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
+       c.save()
+    for c in fc1.filter(status__exact=Customer.CUSTOMER_STATUS.CHECKEDIN):
+       c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
+       c.save()
+    return redirect('/waitlist/current/');
 
 
 def signout(request):
@@ -197,3 +250,100 @@ def signout(request):
 def debug_misc(request):
     '''Use this however you want, it's accessible from /debug/misc. Leave it as you found it, though.'''
     return HttpResponse(str(request.user))
+
+
+@login_required(login_url='/')
+def test_add(request,inputd, inputp, es):
+    utc = UTC()
+    gmtoffset = request.user.restaurantAdminUser.restaurant.client_gmt_offset
+    day = int(inputd)
+    patrons = int(inputp)
+    wl  = request.user.restaurantAdminUser.restaurant.waitlists.all()[0]
+    maxusers = patrons*day
+    d = datetime.utcnow()
+    d = d + timedelta(minutes=-gmtoffset)
+    d0 = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=utc)
+    startd = d0 + timedelta(days=-(day-1))
+
+    while maxusers > 0:
+      testdata = csv.reader(open('website/templates/buzme/testdata.csv', 'rb'), delimiter=',')
+      for row in testdata:
+         p = row.pop()
+         n = row.pop()
+         ps = randint(1,6)
+         if randint(1,10) % 4 == 0:
+            d1 = startd + timedelta(minutes=((randint(0,day-1)*1440)+randint(17*60, 23*60)+gmtoffset))
+            c = Customer(name = n, party_size = ps, phone = p, waitlist = wl, dateTag="current", activityTime=d1)
+            c.save()
+            c.activityTime = d1
+            c.save()
+            ract = RecentActivity(activity="%s party of %s Added"%(n, ps), restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+            ract.save()
+            ract.activityTime = d1
+            ract.save()
+            maxusers = maxusers - 1
+            if maxusers == 0:
+               break
+
+    for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact="current"):
+       midstate = None
+       de = randint(3,60)
+       dm = randint(1,de)
+       if randint(1,10) % 4 == 0:
+          endstate = Customer.CUSTOMER_STATUS.REMOVED
+          if randint(1,10)%4 == 0:
+             midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+          else:
+             midstate = Customer.CUSTOMER_STATUS.SUMMONED
+       elif es == "checkedin_removed":
+          endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
+          if randint(1,10)%2 == 0:
+             midstate = Customer.CUSTOMER_STATUS.SUMMONED
+          elif randint(1,10)%4 == 0:
+             midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+       elif randint(1,10) % 2 == 0:
+          endstate = Customer.CUSTOMER_STATUS.WAITING
+       elif randint(1,10) % 3 == 0:
+          endstate = Customer.CUSTOMER_STATUS.SUMMONED
+       elif randint(1,10) % 4 == 0:
+          endstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+       else:
+          endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
+
+       
+       if midstate:
+          d1 = c.activityTime + timedelta(minutes=dm)
+          c.status = midstate
+          c.save()
+          ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
+                          restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+          ract.save()
+          ract.activityTime = d1
+          ract.save()
+
+       if endstate != Customer.CUSTOMER_STATUS.WAITING:
+          d1 = c.activityTime + timedelta(minutes=de)
+          c.status = endstate
+          c.save()
+          ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
+                          restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+          ract.save()
+          ract.activityTime = d1
+          ract.save()
+    if day == 1:
+       return redirect('/waitlist/current');
+    return redirect('/archive_current/');
+
+
+@login_required(login_url='/')
+def test_purgeall(request):
+    r   = request.user.restaurantAdminUser.restaurant
+    wl  = r.waitlists.all()[0]
+
+    for ract in RecentActivity.objects.filter(restaurant__exact=r):
+       ract.delete()
+    for at in ArchiveTag.objects.filter(restaurant__exact=r):
+       at.delete()
+    for c in Customer.objects.filter(waitlist__exact=wl):
+       c.delete()
+    return redirect('/waitlist/current/');
