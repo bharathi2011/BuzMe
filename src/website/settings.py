@@ -160,3 +160,7 @@ LOGGING = {
 FIXTURE_DIRS = (
     "%s/fixtures" % os.path.dirname(__file__),
 )
+
+os.environ['TWILIO_ACCOUNT_SID'] = 'ACd63edff0ca364ad5b63ebc66c3d3c0b5'
+os.environ['TWILIO_AUTH_TOKEN'] = 'fd1fd8c833d3514efaefe57192343675'
+
