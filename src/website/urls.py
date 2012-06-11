@@ -19,7 +19,8 @@ urlpatterns = patterns('',
     url(r'^signout/$', 'buzme.views.signout'),
 
     # update profile page
-    url(r'^update/$', 'buzme.views.update'),
+    url(r'^update/$', 'buzme.views.update_profile'),
+    url(r'^delete/$', 'buzme.views.delete_profile'),
 
     # ADMIN urls
     url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

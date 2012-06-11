@@ -1,7 +1,7 @@
 # Create your views here.
 from django.shortcuts import render, render_to_response, get_object_or_404, redirect
 from django.http import HttpResponse
-from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity, ArchiveTag
+from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity, ArchiveTag, Analytics
 from django.contrib import auth
 from django.core.context_processors import csrf
 from django.views.decorators.csrf import csrf_protect
@@ -13,8 +13,14 @@ from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
 import datetime
 import csv
+import array
 from random import randint
 from datetime import tzinfo, timedelta, datetime
+import qrcode
+import os,binascii
+from django_mobile import get_flavour
+
+
 
 ZERO = timedelta(0)
 
@@ -86,7 +92,7 @@ def add_customer_to_waitlist(request, waitlist_id):
     wl = get_object_or_404(WaitList, pk=waitlist_id)
     c = Customer(name = name, party_size = party_size, phone = phone, waitlist = wl, dateTag="current")
     c.save()
-    ract = RecentActivity(activity="%s party of %s Added"%(name, party_size), restaurant=wl.restaurant, dateTag="current")
+    ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
     ract.save()
     return redirect('/waitlist/current/')
 
@@ -95,7 +101,7 @@ def set_customer_status(request, customer_id, status):
     c = get_object_or_404(Customer, pk=customer_id)
     c.status = status
     c.save()
-    ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
+    ract = RecentActivity(activity=c.status, customer=c,
                           restaurant=c.waitlist.restaurant, dateTag="current")
     ract.save()
     return redirect('/waitlist/current/')
@@ -125,6 +131,8 @@ def signin_new(request):
     failmsg = 'Error in Signup Form input'
   elif stat == "signout":
     failmsg = 'Signed out successfully'
+  elif stat == "delete":
+    failmsg = 'Restaurant deleted successfully'
   elif not password and not username:
      failmsg = None
   elif not password or not username:
@@ -165,18 +173,32 @@ def signup(request):
   else:
     return redirect('/?status=signup_exist')
 
-  r = Restaurant(name = rname, contactinfo = rcinfo, client_gmt_offset = 0)
+  qr = qrcode.QRCode(
+    version=1,
+    error_correction=qrcode.constants.ERROR_CORRECT_L,
+    box_size=10,
+    border=4,
+  )
+  qr.add_data(rname)
+  qr.make(fit=True)
+  img = qr.make_image()
+  
+  while 1:
+    fname = binascii.b2a_hex(os.urandom(15))
+    if not os.path.exists("buzme/static/qrcodes/%s"%(fname)):
+       break
+  
+  img.save("buzme/static/qrcodes/%s"%(fname))
+  r = Restaurant(name = rname, contactinfo = rcinfo, client_gmt_offset = 0, qrfile=fname)
   r.save()
   ra = RestaurantAdmin(nick = nname, adminuser=u, restaurant=r)
   ra.save()
   wl = WaitList(restaurant=r)
   wl.save()
-  ract = RecentActivity(activity="Created Restaurant", restaurant=r, dateTag="current")
-  ract.save()
   return redirect('/?status=signup_ok');
 
 
-def update(request):
+def update_profile(request):
   form = UpdateProfileForm(request.POST)
   u  = request.user
   ra = u.restaurantAdminUser
@@ -201,6 +223,7 @@ def update(request):
 @login_required(login_url='/')
 def waitlist(request, datetag):
     rstrnt = request.user.restaurantAdminUser.restaurant
+    wl = rstrnt.waitlists.all()[0]
     form = UpdateProfileForm({
             'username': request.user.username,
             'email': request.user.email,
@@ -210,7 +233,46 @@ def waitlist(request, datetag):
        })
     form.fields['username'].widget.attrs['readonly'] = True
 
-    return render(request, 'buzme/restaurant_queue.html', {
+    #if pulling up archive pages, generate analytics
+    if ((datetag != "current") and (datetag != "unprocessed") and (not Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists())):
+       chkinc = [0]*24
+       avgwt  = [0]*24
+       avgwtc = [0]*24
+       for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact=datetag):
+          cact  =  None
+          wact =  None
+          for act in c.activities.all():
+             if act.activity == Customer.CUSTOMER_STATUS.CHECKEDIN:
+                cact = act
+             if act.activity == Customer.CUSTOMER_STATUS.WAITING:
+                wact = act
+          if cact:
+             chkinc[cact.hour()] = chkinc[cact.hour()]+1
+             if wact:
+                difftime = cact.activityTime - wact.activityTime
+                avgwt[wact.hour()] += difftime.seconds/60
+                avgwtc[wact.hour()] = avgwtc[wact.hour()]+1
+       for n in range(24):
+          if avgwtc[n]:
+             avgwt[n] = avgwt[n]/avgwtc[n]
+          else:
+             avgwt[n] = 0
+       anlyt = Analytics(restaurant=rstrnt, dateTag=datetag, averagewaittime=avgwt, checkincount=chkinc)
+       anlyt.save()
+       print anlyt
+
+    cic = None
+    awt = None
+    if Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists():
+       cic = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_checkincount()
+       awt = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_averagewaittime()
+
+   
+    tfile  = 'buzme/restaurant_queue.html'
+    if (get_flavour() == "mobile"):
+       tfile  = 'buzme/m_restaurant_queue.html'
+       
+    return render(request, tfile, {
          'waitlist':rstrnt.waitlists.all()[0], 
          'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0], 
          'signupFormObj':form, 
@@ -223,7 +285,11 @@ def waitlist(request, datetag):
          'count_checkedin':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.CHECKEDIN).count,
          'count_summonfailed':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.SUMMON_FAILED).count,
          'count_removed':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.REMOVED).count,
-       })
+         'checkincount': cic,
+         'averagewaittime': awt,
+          })
+
+
 
 
 @login_required(login_url='/')
@@ -277,7 +343,7 @@ def test_add(request,inputd, inputp, es):
             c.save()
             c.activityTime = d1
             c.save()
-            ract = RecentActivity(activity="%s party of %s Added"%(n, ps), restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+            ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
             ract.save()
             ract.activityTime = d1
             ract.save()
@@ -315,8 +381,7 @@ def test_add(request,inputd, inputp, es):
           d1 = c.activityTime + timedelta(minutes=dm)
           c.status = midstate
           c.save()
-          ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
-                          restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+          ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
           ract.save()
           ract.activityTime = d1
           ract.save()
@@ -325,8 +390,7 @@ def test_add(request,inputd, inputp, es):
           d1 = c.activityTime + timedelta(minutes=de)
           c.status = endstate
           c.save()
-          ract = RecentActivity(activity="%s %s"%(c.name, c.get_status_display()), 
-                          restaurant=wl.restaurant, dateTag="current", activityTime=d1)
+          ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
           ract.save()
           ract.activityTime = d1
           ract.save()
@@ -335,8 +399,7 @@ def test_add(request,inputd, inputp, es):
     return redirect('/archive_current/');
 
 
-@login_required(login_url='/')
-def test_purgeall(request):
+def purgeCustomers(request):
     r   = request.user.restaurantAdminUser.restaurant
     wl  = r.waitlists.all()[0]
 
@@ -346,4 +409,25 @@ def test_purgeall(request):
        at.delete()
     for c in Customer.objects.filter(waitlist__exact=wl):
        c.delete()
-    return redirect('/waitlist/current/');
+    for a in Analytics.objects.filter(restaurant__exact=r):
+       a.delete()
+
+@login_required(login_url='/')
+def test_purgeall(request):
+    purgeCustomers(request)
+    return redirect('/waitlist/current/')
+
+@login_required(login_url='/')
+def delete_profile(request):
+    purgeCustomers(request)
+    r = request.user.restaurantAdminUser.restaurant
+    u = request.user
+    for wl in WaitList.objects.filter(restaurant__exact=r):
+       wl.delete()
+    for ra in RestaurantAdmin.objects.filter(restaurant__exact=r):
+       ra.delete()
+    os.remove("buzme/static/qrcodes/%s"%(r.qrfile))
+    r.delete()
+    auth.logout(request)
+    u.delete()
+    return redirect('/?status=delete')

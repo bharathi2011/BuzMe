@@ -1,5 +1,7 @@
 # Django settings for website project.
 import os
+import django.conf.global_settings as DEFAULT_SETTINGS
+
 
 
 DEBUG = True
@@ -87,6 +89,7 @@ SECRET_KEY = '5gojajk=88tcn_whn@v)g5tno6n0ei_mkpg$gj**22#z=2$d9b'
 
 # List of callables that know how to import templates from various sources.
 TEMPLATE_LOADERS = (
+    'django_mobile.loader.Loader',
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
 #     'django.template.loaders.eggs.Loader',
@@ -98,6 +101,8 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'django_mobile.middleware.MobileDetectionMiddleware',
+    'django_mobile.middleware.SetFlavourMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 )
@@ -114,6 +119,10 @@ TEMPLATE_DIRS = (
     "%s/templates" % os.path.dirname(__file__),
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = DEFAULT_SETTINGS.TEMPLATE_CONTEXT_PROCESSORS + (
+"django_mobile.context_processors.flavour",
+)
+
 INSTALLED_APPS = (
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -126,6 +135,7 @@ INSTALLED_APPS = (
     # Uncomment the next line to enable admin documentation:
     'django.contrib.admindocs',
     'buzme',
+    'django_mobile',
 )
 
 # A sample logging configuration. The only tangible logging
@@ -163,4 +173,3 @@ FIXTURE_DIRS = (
 
 os.environ['TWILIO_ACCOUNT_SID'] = 'ACd63edff0ca364ad5b63ebc66c3d3c0b5'
 os.environ['TWILIO_AUTH_TOKEN'] = 'fd1fd8c833d3514efaefe57192343675'
-

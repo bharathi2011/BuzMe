@@ -48,6 +48,7 @@ class WaitList (models.Model):
 class Restaurant (models.Model):
     name              = models.CharField(max_length=100)
     contactinfo       = models.CharField(max_length=200)
+    qrfile            = models.CharField(max_length=50)
     client_gmt_offset = models.SmallIntegerField()
     def __unicode__(self):
         return self.name
@@ -63,13 +64,33 @@ class RestaurantAdmin (models.Model):
         return "admin for restaurant %s is %s"%(self.restaurant, self.adminuser)
 
 class RecentActivity (models.Model):
-    activity      = models.CharField(max_length=256)
+    activity = models.PositiveSmallIntegerField(
+                                              choices=((Customer.CUSTOMER_STATUS.WAITING, 'Waiting'), 
+                                                       (Customer.CUSTOMER_STATUS.SUMMON_FAILED, 'Summon Failed'), 
+                                                       (Customer.CUSTOMER_STATUS.SUMMONED, 'Summoned'), 
+                                                       (Customer.CUSTOMER_STATUS.CHECKEDIN, 'CheckedIn'), 
+                                                       (Customer.CUSTOMER_STATUS.REMOVED, 'Removed')), 
+                                             )
+    customer      = models.ForeignKey('Customer', related_name='activities')
     restaurant    = models.ForeignKey('Restaurant', related_name='activities')
     activityTime  = models.DateTimeField(auto_now_add=True)
     dateTag       = models.CharField(max_length=20)
     def __unicode__(self):
        lt = self.activityTime + datetime.timedelta(minutes=-self.restaurant.client_gmt_offset) 
        return "%s %s"%(lt.strftime("%b%d %I:%M %p: "), self.activity)
+    def time_str(self):
+       lt = self.activityTime + datetime.timedelta(minutes=-self.restaurant.client_gmt_offset) 
+       return "%s"%(lt.strftime("%I:%M %p"))
+    def date_str(self):
+       lt = self.activityTime + datetime.timedelta(minutes=-self.restaurant.client_gmt_offset) 
+       return "%s"%(lt.strftime("%b%d"))
+    def activity_str(self):
+       return "%s"%(self.activity)
+    def hour(self):
+       lt = self.activityTime + datetime.timedelta(minutes=-self.restaurant.client_gmt_offset) 
+       return lt.hour
+    def letter_display(self):
+       return self.get_activity_display()[0:1]
 
 
 class ArchiveTag (models.Model):
@@ -86,3 +107,15 @@ class ArchiveTag (models.Model):
           at = ArchiveTag(dateTag=tag, restaurant=r, abstime = t)
           at.save()
        return tag
+
+class Analytics (models.Model):
+    restaurant      = models.ForeignKey('Restaurant', related_name='analytics')
+    dateTag         = models.CharField(max_length=20)
+    averagewaittime = models.CommaSeparatedIntegerField(max_length=5*24) 
+    checkincount    = models.CommaSeparatedIntegerField(max_length=5*24) 
+    def __unicode__(self):
+       return "%s %s"%(self.averagewaittime, self.checkincount)
+    def print_averagewaittime(self):
+       return "%s"%(eval(self.averagewaittime))
+    def print_checkincount(self):
+       return "%s"%(eval(self.checkincount))
