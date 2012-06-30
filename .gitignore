@@ -3,3 +3,4 @@ sqlite.db
 *~
 .DS_Store
 *.swp
+*.pyc
