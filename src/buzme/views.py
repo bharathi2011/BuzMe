@@ -67,7 +67,7 @@ def summon_customer(request, customer_id):
    client = TwilioRestClient()
    try:
       message = client.sms.messages.create(to=c.phone, from_="+14086001289",
-                     body="Hello %s,Your Table at %s is ready. Please comeby."%(c.name, c.waitlist.restaurant.name))
+                     body="Hello %s. Your table at %s is ready. Please come by."%(c.name, c.waitlist.restaurant.name))
    except TwilioRestException:
       return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
       
