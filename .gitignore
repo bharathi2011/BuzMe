@@ -7,3 +7,4 @@ sqlite.db
 *.back
 *.bak
 *.original
+*.log
