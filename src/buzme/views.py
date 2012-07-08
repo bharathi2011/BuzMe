@@ -17,7 +17,10 @@ import qrcode
 import os, binascii
 from django_mobile import get_flavour
 
-
+viewlog = open("views.log","wb")
+def log(msg):
+    viewlog.write("%s: %s\n" % (datetime.now(), msg))
+    viewlog.flush()
 
 ZERO = timedelta(0)
 
@@ -218,6 +221,7 @@ def update_profile(request):
 
 @login_required(login_url='/')
 def waitlist(request, datetag):
+    log("entering waitlist")
     rstrnt = request.user.restaurantAdminUser.restaurant
     wl = rstrnt.waitlists.all()[0]
     form = UpdateProfileForm({
@@ -230,7 +234,8 @@ def waitlist(request, datetag):
     form.fields['username'].widget.attrs['readonly'] = True
 
     #if pulling up archive pages, generate analytics
-    if ((datetag != "current") and (datetag != "unprocessed") and (not Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists())):
+    if ((datetag != "current") and (datetag != "unprocessed") and 
+            (not Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists())):
         chkinc = [0] * 24
         avgwt = [0] * 24
         avgwtc = [0] * 24
@@ -267,10 +272,12 @@ def waitlist(request, datetag):
     tfile = 'buzme/restaurant_queue.html'
     if (get_flavour() == "mobile"):
         tfile = 'buzme/m_restaurant_queue.html'
-       
+    
+    log("rendering waitlist")
     return render(request, tfile, {
          'waitlist':rstrnt.waitlists.all()[0],
-         'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0],
+         'restaurant':rstrnt, 
+         'admin':rstrnt.restaurantAdministrator.all()[0],
          'signupFormObj':form,
          'datetag':datetag,
          'activities':RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag),
@@ -287,9 +294,9 @@ def waitlist(request, datetag):
 
 
 
-
 @login_required(login_url='/')
 def archive_current(request):
+    log("entering archive_current")
     rstrnt = request.user.restaurantAdminUser.restaurant
     for ract in RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact="current"):
         ract.dateTag = ArchiveTag.addTag(rstrnt, ract.activityTime)
@@ -301,6 +308,7 @@ def archive_current(request):
     for c in fc1.filter(status__exact=Customer.CUSTOMER_STATUS.CHECKEDIN):
         c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
         c.save()
+    log("redirecting from archive_current")
     return redirect('/waitlist/current/');
 
 
@@ -316,6 +324,7 @@ def debug_misc(request):
 
 @login_required(login_url='/')
 def test_add(request, inputd, inputp, es):
+    log("entering test_add")
     utc = UTC()
     gmtoffset = request.user.restaurantAdminUser.restaurant.client_gmt_offset
     day = int(inputd)
@@ -326,8 +335,9 @@ def test_add(request, inputd, inputp, es):
     d = d + timedelta(minutes= -gmtoffset)
     d0 = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=utc)
     startd = d0 + timedelta(days= -(day - 1))
-
+    log("test_add checkpoint 1")
     testdata = csv.reader(open('website/templates/buzme/testdata.csv', 'rb'), delimiter=',')
+    log("test_add checkpoint 2")
     for row in testdata:
         p = row.pop()
         n = row.pop()
@@ -335,17 +345,15 @@ def test_add(request, inputd, inputp, es):
         if randint(1, 10) % 4 == 0:
             d1 = startd + timedelta(minutes=((randint(0, day - 1) * 1440) + randint(17 * 60, 23 * 60) + gmtoffset))
             c = Customer(name=n, party_size=ps, phone=p, waitlist=wl, dateTag="current", activityTime=d1)
-            c.save()
             c.activityTime = d1
             c.save()
             ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
-            ract.save()
             ract.activityTime = d1
             ract.save()
             maxusers = maxusers - 1
             if maxusers == 0:
                 break
-
+    log("test_add checkpoint 3")
     for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact="current"):
         midstate = None
         de = randint(3, 60)
@@ -376,7 +384,6 @@ def test_add(request, inputd, inputp, es):
             c.status = midstate
             c.save()
             ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
-            ract.save()
             ract.activityTime = d1
             ract.save()
 
@@ -385,9 +392,9 @@ def test_add(request, inputd, inputp, es):
             c.status = endstate
             c.save()
             ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
-            ract.save()
             ract.activityTime = d1
             ract.save()
+    log("redirecting from test_add")
     if day == 1:
         return redirect('/waitlist/current');
     return redirect('/archive_current/');
@@ -397,14 +404,10 @@ def purgeCustomers(request):
     r = request.user.restaurantAdminUser.restaurant
     wl = r.waitlists.all()[0]
 
-    for ract in RecentActivity.objects.filter(restaurant__exact=r):
-        ract.delete()
-    for at in ArchiveTag.objects.filter(restaurant__exact=r):
-        at.delete()
-    for c in Customer.objects.filter(waitlist__exact=wl):
-        c.delete()
-    for a in Analytics.objects.filter(restaurant__exact=r):
-        a.delete()
+    RecentActivity.objects.filter(restaurant__exact=r).delete()
+    ArchiveTag.objects.filter(restaurant__exact=r).delete()
+    Customer.objects.filter(waitlist__exact=wl).delete()
+    Analytics.objects.filter(restaurant__exact=r).delete()
 
 @login_required(login_url='/')
 def test_purgeall(request):

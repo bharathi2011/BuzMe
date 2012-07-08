@@ -98,15 +98,15 @@ class ArchiveTag (models.Model):
     dateTag       = models.CharField(max_length=20)
     abstime       = models.DateTimeField()
     def __unicode__(self):
-       return "%s"%(self.dateTag)
+        return "%s"%(self.dateTag)
     @staticmethod
     def addTag(r, t):
-       t1 = t + datetime.timedelta(minutes=-r.client_gmt_offset)
-       tag = t1.strftime("%b %d")
-       if not ArchiveTag.objects.filter(restaurant__exact=r).filter(dateTag__exact=tag).exists():
-          at = ArchiveTag(dateTag=tag, restaurant=r, abstime = t)
-          at.save()
-       return tag
+        t1 = t + datetime.timedelta(minutes=-r.client_gmt_offset)
+        tag = t1.strftime("%b %d")
+        if not ArchiveTag.objects.filter(restaurant__exact=r).filter(dateTag__exact=tag).exists():
+            at = ArchiveTag(dateTag=tag, restaurant=r, abstime = t)
+            at.save()
+        return tag
 
 class Analytics (models.Model):
     restaurant      = models.ForeignKey('Restaurant', related_name='analytics')

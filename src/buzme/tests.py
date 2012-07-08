@@ -76,3 +76,25 @@ class TestAddTest(TestCase):
         self.assertEqual(Customer.objects.count(), 15)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(response['Location'], '/archive_current/')
+        
+class TestArchiveCurrent(TestCase):
+    def setUp(self):
+        '''Add user data so we have something to archive'''
+        self.user = User.objects.create_user("TestAddTest_User")
+        self.restaurant = Restaurant(name="Slippery Bannana", 
+                             contactinfo="123 Fake Street",
+                             qrfile="nonexistent qrfile",
+                             client_gmt_offset=1);
+        self.restaurant.save()
+        wl = WaitList(restaurant=self.restaurant); 
+        wl.save()
+        self.user.restaurantAdminUser = RestaurantAdmin(nick="TestAddTest_nick",
+                                                        restaurant=self.restaurant) 
+        self.request = HttpRequest()
+        self.request.user = self.user
+        views.test_add(self.request, 3, 7, "checkedin_removed")
+    
+    def test_archive_current(self):
+        response = views.archive_current(self.request)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], '/waitlist/current/')
