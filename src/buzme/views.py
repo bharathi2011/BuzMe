@@ -17,7 +17,7 @@ import array
 from random import randint
 from datetime import tzinfo, timedelta, datetime
 import qrcode
-import os,binascii
+import os, binascii
 from django_mobile import get_flavour
 
 
@@ -36,22 +36,22 @@ class UTC(tzinfo):
 
 
 class UpdateProfileForm(forms.Form):
-    username    = forms.CharField(label="icon-user", max_length=30, 
-                     widget=forms.TextInput(attrs={'placeholder': 'Username'}))
-    email       = forms.EmailField(label="icon-envelope", 
-                     widget=forms.TextInput(attrs={'placeholder': 'email'}))
-    nickname    = forms.CharField(label="icon-star", max_length=30, 
-                     widget=forms.TextInput(attrs={'placeholder': 'Nickname'}))
-    restname    = forms.CharField(label="icon-glass", 
-                     widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
-    restcontact = forms.CharField(label="icon-home", 
-                     widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
+    username    = forms.CharField(label="icon-user", max_length=30,
+                                  widget=forms.TextInput(attrs={'placeholder': 'Username'}))
+    email       = forms.EmailField(label="icon-envelope",
+                                   widget=forms.TextInput(attrs={'placeholder': 'email'}))
+    nickname    = forms.CharField(label="icon-star", max_length=30,
+                                  widget=forms.TextInput(attrs={'placeholder': 'Nickname'}))
+    restname    = forms.CharField(label="icon-glass",
+                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
+    restcontact = forms.CharField(label="icon-home",
+                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
 
 class SignupProfileForm(UpdateProfileForm):
-    password    = forms.CharField(label="icon-asterisk", max_length=30, 
-                     widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
-    password1   = forms.CharField(label="icon-asterisk", max_length=30, 
-                     widget=forms.PasswordInput(attrs={'placeholder': 'Retype Password'}))
+    password    = forms.CharField(label="icon-asterisk", max_length=30,
+                                  widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
+    password1   = forms.CharField(label="icon-asterisk", max_length=30,
+                                  widget=forms.PasswordInput(attrs={'placeholder': 'Retype Password'}))
 
 def debug_customers_all(request):
     return render_to_response('buzme/debug_customers.html',
@@ -63,20 +63,19 @@ def checkin_customer(request, customer_id):
    
 @login_required(login_url='/')
 def summon_customer(request, customer_id):
-   c = get_object_or_404(Customer, pk=customer_id)
-   client = TwilioRestClient()
-   try:
-      message = client.sms.messages.create(to=c.phone, from_="+14086001289",
-                     body="Hello %s. Your table at %s is ready. Please come by."%(c.name, c.waitlist.restaurant.name))
-   except TwilioRestException:
-      return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
+    c = get_object_or_404(Customer, pk=customer_id)
+    client = TwilioRestClient()
+    try:
+        client.sms.messages.create(to=c.phone, from_="+14086001289",
+                                   body="Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name))
+    except TwilioRestException:
+        return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
       
-   return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
+    return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
 
 @login_required(login_url='/')
 def remove_customer(request, customer_id):
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.REMOVED)
-    ract.save()
 
 @login_required(login_url='/')
 def add_customer_to_waitlist(request, waitlist_id):
@@ -90,7 +89,7 @@ def add_customer_to_waitlist(request, waitlist_id):
     if 'phone' in request.POST:
         phone = request.POST['phone']
     wl = get_object_or_404(WaitList, pk=waitlist_id)
-    c = Customer(name = name, party_size = party_size, phone = phone, waitlist = wl, dateTag="current")
+    c = Customer(name=name, party_size=party_size, phone=phone, waitlist=wl, dateTag="current")
     c.save()
     ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
     ract.save()
@@ -150,16 +149,16 @@ def signin_new(request):
         return redirect('/waitlist/current/')
      else:
         failmsg = 'Account %s disabled' % username
-  return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form},context_instance=RequestContext(request))
+  return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form}, context_instance=RequestContext(request))
  
 def signup(request):
   form = SignupProfileForm(request.POST)
   if form.is_valid():
-     uname  = form.cleaned_data['username']
-     pwd    = form.cleaned_data['password']
+     uname = form.cleaned_data['username']
+     pwd = form.cleaned_data['password']
      uemail = form.cleaned_data['email']
-     nname  = form.cleaned_data['nickname']
-     rname  = form.cleaned_data['restname']
+     nname = form.cleaned_data['nickname']
+     rname = form.cleaned_data['restname']
      rcinfo = form.cleaned_data['restcontact']
 #  else:
 #    return redirect('/?status=form_error')
@@ -168,7 +167,7 @@ def signup(request):
     User.objects.get(username=uname)
   except User.DoesNotExist:
     #its ok we are good to go
-    u = User.objects.create_user(uname,uemail,pwd)
+    u = User.objects.create_user(uname, uemail, pwd)
     u.save()
   else:
     return redirect('/?status=signup_exist')
@@ -185,13 +184,13 @@ def signup(request):
   
   while 1:
     fname = binascii.b2a_hex(os.urandom(15))
-    if not os.path.exists("buzme/static/qrcodes/%s"%(fname)):
+    if not os.path.exists("buzme/static/qrcodes/%s" % (fname)):
        break
   
-  img.save("buzme/static/qrcodes/%s"%(fname))
-  r = Restaurant(name = rname, contactinfo = rcinfo, client_gmt_offset = 0, qrfile=fname)
+  img.save("buzme/static/qrcodes/%s" % (fname))
+  r = Restaurant(name=rname, contactinfo=rcinfo, client_gmt_offset=0, qrfile=fname)
   r.save()
-  ra = RestaurantAdmin(nick = nname, adminuser=u, restaurant=r)
+  ra = RestaurantAdmin(nick=nname, adminuser=u, restaurant=r)
   ra.save()
   wl = WaitList(restaurant=r)
   wl.save()
@@ -199,26 +198,26 @@ def signup(request):
 
 
 def update_profile(request):
-  form = UpdateProfileForm(request.POST)
-  u  = request.user
-  ra = u.restaurantAdminUser
-  r  = ra.restaurant
-  if form.is_valid():
-     uname  = form.cleaned_data['username']
-     uemail = form.cleaned_data['email']
-     nname  = form.cleaned_data['nickname']
-     rcinfo = form.cleaned_data['restcontact']
-     rname  = form.cleaned_data['restname']
-
-  ra.nick = nname;
-  r.contactinfo = rcinfo;
-  r.name = rname;
-  u.email = uemail;
-  r.save();
-  ra.save();
-  u.save();
-
-  return redirect('/waitlist/current/');
+    form = UpdateProfileForm(request.POST)
+    u = request.user
+    ra = u.restaurantAdminUser
+    r = ra.restaurant
+    if form.is_valid():
+        uname  = form.cleaned_data['username']
+        uemail = form.cleaned_data['email']
+        nname  = form.cleaned_data['nickname']
+        rcinfo = form.cleaned_data['restcontact']
+        rname  = form.cleaned_data['restname']
+    
+    ra.nick = nname;
+    r.contactinfo = rcinfo;
+    r.name = rname;
+    u.email = uemail;
+    r.save();
+    ra.save();
+    u.save();
+    
+    return redirect('/waitlist/current/');
 
 @login_required(login_url='/')
 def waitlist(request, datetag):
@@ -235,26 +234,26 @@ def waitlist(request, datetag):
 
     #if pulling up archive pages, generate analytics
     if ((datetag != "current") and (datetag != "unprocessed") and (not Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists())):
-       chkinc = [0]*24
-       avgwt  = [0]*24
-       avgwtc = [0]*24
+       chkinc = [0] * 24
+       avgwt = [0] * 24
+       avgwtc = [0] * 24
        for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact=datetag):
-          cact  =  None
-          wact =  None
+          cact = None
+          wact = None
           for act in c.activities.all():
              if act.activity == Customer.CUSTOMER_STATUS.CHECKEDIN:
                 cact = act
              if act.activity == Customer.CUSTOMER_STATUS.WAITING:
                 wact = act
           if cact:
-             chkinc[cact.hour()] = chkinc[cact.hour()]+1
+             chkinc[cact.hour()] = chkinc[cact.hour()] + 1
              if wact:
                 difftime = cact.activityTime - wact.activityTime
-                avgwt[wact.hour()] += difftime.seconds/60
-                avgwtc[wact.hour()] = avgwtc[wact.hour()]+1
+                avgwt[wact.hour()] += difftime.seconds / 60
+                avgwtc[wact.hour()] = avgwtc[wact.hour()] + 1
        for n in range(24):
           if avgwtc[n]:
-             avgwt[n] = avgwt[n]/avgwtc[n]
+             avgwt[n] = avgwt[n] / avgwtc[n]
           else:
              avgwt[n] = 0
        anlyt = Analytics(restaurant=rstrnt, dateTag=datetag, averagewaittime=avgwt, checkincount=chkinc)
@@ -268,15 +267,15 @@ def waitlist(request, datetag):
        awt = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_averagewaittime()
 
    
-    tfile  = 'buzme/restaurant_queue.html'
+    tfile = 'buzme/restaurant_queue.html'
     if (get_flavour() == "mobile"):
-       tfile  = 'buzme/m_restaurant_queue.html'
+       tfile = 'buzme/m_restaurant_queue.html'
        
     return render(request, tfile, {
-         'waitlist':rstrnt.waitlists.all()[0], 
-         'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0], 
-         'signupFormObj':form, 
-         'datetag':datetag, 
+         'waitlist':rstrnt.waitlists.all()[0],
+         'restaurant':rstrnt, 'admin':rstrnt.restaurantAdministrator.all()[0],
+         'signupFormObj':form,
+         'datetag':datetag,
          'activities':RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag),
          'customers':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag),
          'archivedtags':ArchiveTag.objects.filter(restaurant__exact=rstrnt),
@@ -296,15 +295,15 @@ def waitlist(request, datetag):
 def archive_current(request):
     rstrnt = request.user.restaurantAdminUser.restaurant
     for ract in RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact="current"):
-       ract.dateTag = ArchiveTag.addTag(rstrnt, ract.activityTime)
-       ract.save()
+        ract.dateTag = ArchiveTag.addTag(rstrnt, ract.activityTime)
+        ract.save()
     fc1 = Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0])
     for c in fc1.filter(status__exact=Customer.CUSTOMER_STATUS.REMOVED):
-       c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
-       c.save()
+        c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
+        c.save()
     for c in fc1.filter(status__exact=Customer.CUSTOMER_STATUS.CHECKEDIN):
-       c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
-       c.save()
+        c.dateTag = ArchiveTag.addTag(rstrnt, c.activityTime)
+        c.save()
     return redirect('/waitlist/current/');
 
 
@@ -319,27 +318,26 @@ def debug_misc(request):
 
 
 @login_required(login_url='/')
-def test_add(request,inputd, inputp, es):
+def test_add(request, inputd, inputp, es):
     utc = UTC()
     gmtoffset = request.user.restaurantAdminUser.restaurant.client_gmt_offset
     day = int(inputd)
     patrons = int(inputp)
-    wl  = request.user.restaurantAdminUser.restaurant.waitlists.all()[0]
-    maxusers = patrons*day
+    wl = request.user.restaurantAdminUser.restaurant.waitlists.all()[0]
+    maxusers = patrons * day
     d = datetime.utcnow()
-    d = d + timedelta(minutes=-gmtoffset)
+    d = d + timedelta(minutes= -gmtoffset)
     d0 = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=utc)
-    startd = d0 + timedelta(days=-(day-1))
+    startd = d0 + timedelta(days= -(day - 1))
 
-    while maxusers > 0:
-      testdata = csv.reader(open('website/templates/buzme/testdata.csv', 'rb'), delimiter=',')
-      for row in testdata:
-         p = row.pop()
-         n = row.pop()
-         ps = randint(1,6)
-         if randint(1,10) % 4 == 0:
-            d1 = startd + timedelta(minutes=((randint(0,day-1)*1440)+randint(17*60, 23*60)+gmtoffset))
-            c = Customer(name = n, party_size = ps, phone = p, waitlist = wl, dateTag="current", activityTime=d1)
+    testdata = csv.reader(open('website/templates/buzme/testdata.csv', 'rb'), delimiter=',')
+    for row in testdata:
+        p = row.pop()
+        n = row.pop()
+        ps = randint(1, 6)
+        if randint(1, 10) % 4 == 0:
+            d1 = startd + timedelta(minutes=((randint(0, day - 1) * 1440) + randint(17 * 60, 23 * 60) + gmtoffset))
+            c = Customer(name=n, party_size=ps, phone=p, waitlist=wl, dateTag="current", activityTime=d1)
             c.save()
             c.activityTime = d1
             c.save()
@@ -349,68 +347,67 @@ def test_add(request,inputd, inputp, es):
             ract.save()
             maxusers = maxusers - 1
             if maxusers == 0:
-               break
+                break
 
     for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact="current"):
-       midstate = None
-       de = randint(3,60)
-       dm = randint(1,de)
-       if randint(1,10) % 4 == 0:
-          endstate = Customer.CUSTOMER_STATUS.REMOVED
-          if randint(1,10)%4 == 0:
-             midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
-          else:
-             midstate = Customer.CUSTOMER_STATUS.SUMMONED
-       elif es == "checkedin_removed":
-          endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
-          if randint(1,10)%2 == 0:
-             midstate = Customer.CUSTOMER_STATUS.SUMMONED
-          elif randint(1,10)%4 == 0:
-             midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
-       elif randint(1,10) % 2 == 0:
-          endstate = Customer.CUSTOMER_STATUS.WAITING
-       elif randint(1,10) % 3 == 0:
-          endstate = Customer.CUSTOMER_STATUS.SUMMONED
-       elif randint(1,10) % 4 == 0:
-          endstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
-       else:
-          endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
+        midstate = None
+        de = randint(3, 60)
+        dm = randint(1, de)
+        if randint(1, 10) % 4 == 0:
+            endstate = Customer.CUSTOMER_STATUS.REMOVED
+            if randint(1, 10) % 4 == 0:
+                midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+            else:
+                midstate = Customer.CUSTOMER_STATUS.SUMMONED
+        elif es == "checkedin_removed":
+            endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
+            if randint(1, 10) % 2 == 0:
+                midstate = Customer.CUSTOMER_STATUS.SUMMONED
+            elif randint(1, 10) % 4 == 0:
+                midstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+        elif randint(1, 10) % 2 == 0:
+            endstate = Customer.CUSTOMER_STATUS.WAITING
+        elif randint(1, 10) % 3 == 0:
+            endstate = Customer.CUSTOMER_STATUS.SUMMONED
+        elif randint(1, 10) % 4 == 0:
+            endstate = Customer.CUSTOMER_STATUS.SUMMON_FAILED
+        else:
+            endstate = Customer.CUSTOMER_STATUS.CHECKEDIN
+     
+        if midstate:
+            d1 = c.activityTime + timedelta(minutes=dm)
+            c.status = midstate
+            c.save()
+            ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
+            ract.activityTime = d1
+            ract.save()
 
-       
-       if midstate:
-          d1 = c.activityTime + timedelta(minutes=dm)
-          c.status = midstate
-          c.save()
-          ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
-          ract.save()
-          ract.activityTime = d1
-          ract.save()
-
-       if endstate != Customer.CUSTOMER_STATUS.WAITING:
-          d1 = c.activityTime + timedelta(minutes=de)
-          c.status = endstate
-          c.save()
-          ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
-          ract.save()
-          ract.activityTime = d1
-          ract.save()
+        if endstate != Customer.CUSTOMER_STATUS.WAITING:
+            d1 = c.activityTime + timedelta(minutes=de)
+            c.status = endstate
+            c.save()
+            ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
+            ract.activityTime = d1
+            ract.save()
     if day == 1:
-       return redirect('/waitlist/current');
+        return redirect('/waitlist/current');
     return redirect('/archive_current/');
 
 
 def purgeCustomers(request):
-    r   = request.user.restaurantAdminUser.restaurant
-    wl  = r.waitlists.all()[0]
+    r = request.user.restaurantAdminUser.restaurant
+    wl = r.waitlists.all()[0]
 
     for ract in RecentActivity.objects.filter(restaurant__exact=r):
-       ract.delete()
+        ract.delete()
     for at in ArchiveTag.objects.filter(restaurant__exact=r):
-       at.delete()
+        at.delete()
     for c in Customer.objects.filter(waitlist__exact=wl):
-       c.delete()
+        c.delete()
     for a in Analytics.objects.filter(restaurant__exact=r):
-       a.delete()
+        a.delete()
 
 @login_required(login_url='/')
 def test_purgeall(request):
@@ -423,10 +420,10 @@ def delete_profile(request):
     r = request.user.restaurantAdminUser.restaurant
     u = request.user
     for wl in WaitList.objects.filter(restaurant__exact=r):
-       wl.delete()
+        wl.delete()
     for ra in RestaurantAdmin.objects.filter(restaurant__exact=r):
-       ra.delete()
-    os.remove("buzme/static/qrcodes/%s"%(r.qrfile))
+        ra.delete()
+    os.remove("buzme/static/qrcodes/%s" % (r.qrfile))
     r.delete()
     auth.logout(request)
     u.delete()
