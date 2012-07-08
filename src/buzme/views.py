@@ -65,12 +65,17 @@ def checkin_customer(request, customer_id):
 @login_required(login_url='/')
 def summon_customer(request, customer_id):
     c = get_object_or_404(Customer, pk=customer_id)
-    client = TwilioRestClient()
-    try:
-        client.sms.messages.create(to=c.phone, from_="+14086001289",
-                                   body="Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name))
-    except TwilioRestException:
+    if (not c.phone) or (c.phone is ""):
+        request.session['err_msg'] = "PLEASE SUMMON %s, PARTY OF %d YOURSELF. They did not leave a phone number." % (c.name, c.party_size)
         return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
+    else:
+        client = TwilioRestClient()
+        try:
+            client.sms.messages.create(to=c.phone, from_="+14086001289",
+                                       body="Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name))
+        except TwilioRestException:
+            request.session['err_msg'] = "PLEASE SUMMON %s, PARTY OF %d YOURSELF. The phone number they left was invalid." % (c.name, c.party_size) 
+            return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
       
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
 

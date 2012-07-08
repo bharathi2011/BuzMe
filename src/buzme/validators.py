@@ -38,7 +38,11 @@ def valid_customer_creation_parameters(request):
     if party_size is "":
         raise ValidationError('Please specify a size of the party.')
     try:
-        int(party_size)
+        party_size = int(party_size)
     except ValueError:
         raise ValidationError('Party size must be a number.')
+    if party_size < 1:
+        raise ValidationError("%d is too small a party to put in this system." % party_size)
+    if party_size > 999:
+        raise ValidationError("Party of %d! That's a lot. Restaurants that can seat more than 999 people are not supported by this system." % party_size)
         
