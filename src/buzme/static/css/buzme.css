@@ -9,3 +9,6 @@
   color: #999999;
 }
 
+div#error {
+  text-align: center;
+}

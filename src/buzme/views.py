@@ -16,6 +16,7 @@ from datetime import tzinfo, timedelta, datetime
 import qrcode
 import os, binascii
 from django_mobile import get_flavour
+from validators import valid_customer_creation_parameters
 
 viewlog = open("views.log","wb")
 def log(msg):
@@ -79,12 +80,12 @@ def remove_customer(request, customer_id):
 
 @login_required(login_url='/')
 def add_customer_to_waitlist(request, waitlist_id):
-    name = None
-    if 'name' in request.POST:
-        name = request.POST['name']
-    party_size = None
-    if 'party_size' in request.POST:
-        party_size = request.POST['party_size']
+    valid, err_msg = valid_customer_creation_parameters(request)
+    if not valid:
+        request.session['err_msg'] = err_msg
+        return redirect('/waitlist/current/')
+    name = request.POST['name']
+    party_size = request.POST['party_size']
     phone = None
     if 'phone' in request.POST:
         phone = request.POST['phone']
@@ -221,7 +222,10 @@ def update_profile(request):
 
 @login_required(login_url='/')
 def waitlist(request, datetag):
-    log("entering waitlist")
+    err_msg = None
+    if 'err_msg' in request.session:
+        err_msg = request.session['err_msg']
+        del request.session['err_msg']
     rstrnt = request.user.restaurantAdminUser.restaurant
     wl = rstrnt.waitlists.all()[0]
     form = UpdateProfileForm({
@@ -290,6 +294,7 @@ def waitlist(request, datetag):
          'count_removed':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag).filter(status__exact=Customer.CUSTOMER_STATUS.REMOVED).count,
          'checkincount': cic,
          'averagewaittime': awt,
+         'err_msg':err_msg
           })
 
 

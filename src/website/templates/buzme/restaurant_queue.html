@@ -131,10 +131,19 @@
           </div>
           </li>
          </ul>
- 
         </div>
       </div>
     </div>
+
+	<!--
+	If an error message is specified it shows up in a red warning bar. Touching the warning bar
+	dismisses it. 
+	 -->
+	{% if err_msg %}
+    <div id="error" class="well container-fluid btn-danger" onclick="this.style.display='none';">
+      {{ err_msg }}
+    </div>
+    {% endif %}
 
       <div class="container-fluid">
       <div class="row-fluid">
