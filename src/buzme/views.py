@@ -3,17 +3,14 @@ from django.shortcuts import render, render_to_response, get_object_or_404, redi
 from django.http import HttpResponse
 from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity, ArchiveTag, Analytics
 from django.contrib import auth
-from django.core.context_processors import csrf
 from django.views.decorators.csrf import csrf_protect
 from django.contrib.auth.models import User
 from django import forms
-from django.template import Template, RequestContext
+from django.template import RequestContext
 from django.contrib.auth.decorators import login_required
 from twilio.rest import TwilioRestClient
 from twilio import TwilioRestException
-import datetime
 import csv
-import array
 from random import randint
 from datetime import tzinfo, timedelta, datetime
 import qrcode
@@ -107,94 +104,94 @@ def set_customer_status(request, customer_id, status):
 
 @csrf_protect
 def signin_new(request):
-  form = SignupProfileForm()
-  stat = None
-  password = None
-  username = None
-  gmtoffset = None
-
-  if 'status' in request.REQUEST:
-     stat = request.REQUEST['status']
-  if 'password' in request.REQUEST:
-     password = request.REQUEST['password']
-  if 'username' in request.REQUEST: 
-     username = request.REQUEST['username']
-  if 'gmtoffset' in request.REQUEST: 
-     gmtoffset = request.REQUEST['gmtoffset']
-
-  if stat == "signup_exist":
-    failmsg = 'Cannot Signup: User Exists'
-  elif stat == "signup_ok":
-    failmsg = 'Signed Up Succesfully'
-  elif stat == "form_error":
-    failmsg = 'Error in Signup Form input'
-  elif stat == "signout":
-    failmsg = 'Signed out successfully'
-  elif stat == "delete":
-    failmsg = 'Restaurant deleted successfully'
-  elif not password and not username:
-     failmsg = None
-  elif not password or not username:
-     failmsg = 'Please provide both username and password'
-
-  if username and password:
-     user = auth.authenticate(username=username, password=password)
-     if (user is None):
-        failmsg = 'Authentication failed'
-     elif user.is_active:
-        auth.login(request, user)
-        if gmtoffset:
-           user.restaurantAdminUser.restaurant.client_gmt_offset = gmtoffset
-           user.restaurantAdminUser.restaurant.save()
-        return redirect('/waitlist/current/')
-     else:
-        failmsg = 'Account %s disabled' % username
-  return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form}, context_instance=RequestContext(request))
+    form = SignupProfileForm()
+    stat = None
+    password = None
+    username = None
+    gmtoffset = None
+    
+    if 'status' in request.REQUEST:
+        stat = request.REQUEST['status']
+    if 'password' in request.REQUEST:
+        password = request.REQUEST['password']
+    if 'username' in request.REQUEST: 
+        username = request.REQUEST['username']
+    if 'gmtoffset' in request.REQUEST: 
+        gmtoffset = request.REQUEST['gmtoffset']
+    
+    if stat == "signup_exist":
+        failmsg = 'Cannot Signup: User Exists'
+    elif stat == "signup_ok":
+        failmsg = 'Signed Up Succesfully'
+    elif stat == "form_error":
+        failmsg = 'Error in Signup Form input'
+    elif stat == "signout":
+        failmsg = 'Signed out successfully'
+    elif stat == "delete":
+        failmsg = 'Restaurant deleted successfully'
+    elif not password and not username:
+        failmsg = None
+    elif not password or not username:
+        failmsg = 'Please provide both username and password'
+    
+    if username and password:
+        user = auth.authenticate(username=username, password=password)
+        if (user is None):
+            failmsg = 'Authentication failed'
+        elif user.is_active:
+            auth.login(request, user)
+            if gmtoffset:
+                user.restaurantAdminUser.restaurant.client_gmt_offset = gmtoffset
+                user.restaurantAdminUser.restaurant.save()
+            return redirect('/waitlist/current/')
+        else:
+            failmsg = 'Account %s disabled' % username
+    return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form}, context_instance=RequestContext(request))
  
 def signup(request):
-  form = SignupProfileForm(request.POST)
-  if form.is_valid():
-     uname = form.cleaned_data['username']
-     pwd = form.cleaned_data['password']
-     uemail = form.cleaned_data['email']
-     nname = form.cleaned_data['nickname']
-     rname = form.cleaned_data['restname']
-     rcinfo = form.cleaned_data['restcontact']
-#  else:
-#    return redirect('/?status=form_error')
-
-  try:
-    User.objects.get(username=uname)
-  except User.DoesNotExist:
-    #its ok we are good to go
-    u = User.objects.create_user(uname, uemail, pwd)
-    u.save()
-  else:
-    return redirect('/?status=signup_exist')
-
-  qr = qrcode.QRCode(
-    version=1,
-    error_correction=qrcode.constants.ERROR_CORRECT_L,
-    box_size=10,
-    border=4,
-  )
-  qr.add_data(rname)
-  qr.make(fit=True)
-  img = qr.make_image()
-  
-  while 1:
-    fname = binascii.b2a_hex(os.urandom(15))
-    if not os.path.exists("buzme/static/qrcodes/%s" % (fname)):
-       break
-  
-  img.save("buzme/static/qrcodes/%s" % (fname))
-  r = Restaurant(name=rname, contactinfo=rcinfo, client_gmt_offset=0, qrfile=fname)
-  r.save()
-  ra = RestaurantAdmin(nick=nname, adminuser=u, restaurant=r)
-  ra.save()
-  wl = WaitList(restaurant=r)
-  wl.save()
-  return redirect('/?status=signup_ok');
+    form = SignupProfileForm(request.POST)
+    if form.is_valid():
+        uname = form.cleaned_data['username']
+        pwd = form.cleaned_data['password']
+        uemail = form.cleaned_data['email']
+        nname = form.cleaned_data['nickname']
+        rname = form.cleaned_data['restname']
+        rcinfo = form.cleaned_data['restcontact']
+    #  else:
+    #    return redirect('/?status=form_error')
+    
+    try:
+        User.objects.get(username=uname)
+    except User.DoesNotExist:
+        #its ok we are good to go
+        u = User.objects.create_user(uname, uemail, pwd)
+        u.save()
+    else:
+        return redirect('/?status=signup_exist')
+    
+    qr = qrcode.QRCode(
+      version=1,
+      error_correction=qrcode.constants.ERROR_CORRECT_L,
+      box_size=10,
+      border=4,
+    )
+    qr.add_data(rname)
+    qr.make(fit=True)
+    img = qr.make_image()
+    
+    while 1:
+        fname = binascii.b2a_hex(os.urandom(15))
+        if not os.path.exists("buzme/static/qrcodes/%s" % (fname)):
+            break
+    
+    img.save("buzme/static/qrcodes/%s" % (fname))
+    r = Restaurant(name=rname, contactinfo=rcinfo, client_gmt_offset=0, qrfile=fname)
+    r.save()
+    ra = RestaurantAdmin(nick=nname, adminuser=u, restaurant=r)
+    ra.save()
+    wl = WaitList(restaurant=r)
+    wl.save()
+    return redirect('/?status=signup_ok');
 
 
 def update_profile(request):
@@ -203,7 +200,7 @@ def update_profile(request):
     ra = u.restaurantAdminUser
     r = ra.restaurant
     if form.is_valid():
-        uname  = form.cleaned_data['username']
+        #uname  = form.cleaned_data['username']
         uemail = form.cleaned_data['email']
         nname  = form.cleaned_data['nickname']
         rcinfo = form.cleaned_data['restcontact']
@@ -234,42 +231,42 @@ def waitlist(request, datetag):
 
     #if pulling up archive pages, generate analytics
     if ((datetag != "current") and (datetag != "unprocessed") and (not Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists())):
-       chkinc = [0] * 24
-       avgwt = [0] * 24
-       avgwtc = [0] * 24
-       for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact=datetag):
-          cact = None
-          wact = None
-          for act in c.activities.all():
-             if act.activity == Customer.CUSTOMER_STATUS.CHECKEDIN:
-                cact = act
-             if act.activity == Customer.CUSTOMER_STATUS.WAITING:
-                wact = act
-          if cact:
-             chkinc[cact.hour()] = chkinc[cact.hour()] + 1
-             if wact:
-                difftime = cact.activityTime - wact.activityTime
-                avgwt[wact.hour()] += difftime.seconds / 60
-                avgwtc[wact.hour()] = avgwtc[wact.hour()] + 1
-       for n in range(24):
-          if avgwtc[n]:
-             avgwt[n] = avgwt[n] / avgwtc[n]
-          else:
-             avgwt[n] = 0
-       anlyt = Analytics(restaurant=rstrnt, dateTag=datetag, averagewaittime=avgwt, checkincount=chkinc)
-       anlyt.save()
-       print anlyt
+        chkinc = [0] * 24
+        avgwt = [0] * 24
+        avgwtc = [0] * 24
+        for c in Customer.objects.filter(waitlist__exact=wl).filter(dateTag__exact=datetag):
+            cact = None
+            wact = None
+            for act in c.activities.all():
+                if act.activity == Customer.CUSTOMER_STATUS.CHECKEDIN:
+                    cact = act
+                if act.activity == Customer.CUSTOMER_STATUS.WAITING:
+                    wact = act
+            if cact:
+                chkinc[cact.hour()] = chkinc[cact.hour()] + 1
+                if wact:
+                    difftime = cact.activityTime - wact.activityTime
+                    avgwt[wact.hour()] += difftime.seconds / 60
+                    avgwtc[wact.hour()] = avgwtc[wact.hour()] + 1
+        for n in range(24):
+            if avgwtc[n]:
+                avgwt[n] = avgwt[n] / avgwtc[n]
+            else:
+                avgwt[n] = 0
+        anlyt = Analytics(restaurant=rstrnt, dateTag=datetag, averagewaittime=avgwt, checkincount=chkinc)
+        anlyt.save()
+        print anlyt
 
     cic = None
     awt = None
     if Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).exists():
-       cic = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_checkincount()
-       awt = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_averagewaittime()
+        cic = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_checkincount()
+        awt = Analytics.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag).all()[0].print_averagewaittime()
 
    
     tfile = 'buzme/restaurant_queue.html'
     if (get_flavour() == "mobile"):
-       tfile = 'buzme/m_restaurant_queue.html'
+        tfile = 'buzme/m_restaurant_queue.html'
        
     return render(request, tfile, {
          'waitlist':rstrnt.waitlists.all()[0],
