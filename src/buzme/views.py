@@ -38,15 +38,15 @@ class UTC(tzinfo):
 
 class UpdateProfileForm(forms.Form):
     username    = forms.CharField(label="icon-user", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'Username'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Login ID'}))
     email       = forms.EmailField(label="icon-envelope",
-                                   widget=forms.TextInput(attrs={'placeholder': 'email'}))
+                                   widget=forms.TextInput(attrs={'placeholder': 'Email'}))
     nickname    = forms.CharField(label="icon-star", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'Nickname'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'User Name'}))
     restname    = forms.CharField(label="icon-glass",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home",
-                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Address'}))
 
 class SignupProfileForm(UpdateProfileForm):
     password    = forms.CharField(label="icon-asterisk", max_length=30,
@@ -133,7 +133,7 @@ def signin_new(request):
     elif stat == "signup_ok":
         failmsg = 'Signed Up Succesfully'
     elif stat == "form_error":
-        failmsg = 'Error in Signup Form input'
+        failmsg = 'Error in input'
     elif stat == "signout":
         failmsg = 'Signed out successfully'
     elif stat == "delete":
@@ -158,7 +158,11 @@ def signin_new(request):
     return render_to_response('buzme/login_page.html', {'failure_message': failmsg, 'signupFormObj':form}, context_instance=RequestContext(request))
  
 def signup(request):
-    form = SignupProfileForm(request.POST)
+    if request.method == 'POST':
+        form = SignupProfileForm(request.POST)
+    else:
+        form = SignupProfileForm()
+
     if form.is_valid():
         uname = form.cleaned_data['username']
         pwd = form.cleaned_data['password']
@@ -166,8 +170,10 @@ def signup(request):
         nname = form.cleaned_data['nickname']
         rname = form.cleaned_data['restname']
         rcinfo = form.cleaned_data['restcontact']
-    #  else:
-    #    return redirect('/?status=form_error')
+    else:
+        return render_to_response('buzme/login_page.html', 
+                                  {'signupFormObj':form, 'signup_view':'yes'}, 
+                                  context_instance=RequestContext(request))
     
     try:
         User.objects.get(username=uname)
@@ -208,12 +214,28 @@ def update_profile(request):
     u = request.user
     ra = u.restaurantAdminUser
     r = ra.restaurant
+
+    tfile = 'buzme/restaurant_queue.html'
+    if (get_flavour() == "mobile"):
+        tfile = 'buzme/m_restaurant_queue.html'
+
     if form.is_valid():
         #uname  = form.cleaned_data['username']
         uemail = form.cleaned_data['email']
         nname  = form.cleaned_data['nickname']
         rcinfo = form.cleaned_data['restcontact']
         rname  = form.cleaned_data['restname']
+    else:
+        return render(request, tfile, {
+         'waitlist':r.waitlists.all()[0],
+         'modal_view':'update_profile',
+         'restaurant':r, 
+         'admin':ra,
+         'updateFormObj':form,
+         'err_msg':"error updating profile"
+          })
+
+
     
     ra.nick = nname;
     r.contactinfo = rcinfo;
@@ -287,7 +309,7 @@ def waitlist(request, datetag):
          'waitlist':rstrnt.waitlists.all()[0],
          'restaurant':rstrnt, 
          'admin':rstrnt.restaurantAdministrator.all()[0],
-         'signupFormObj':form,
+         'updateFormObj':form,
          'datetag':datetag,
          'activities':RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag),
          'customers':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag),
