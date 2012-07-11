@@ -30,7 +30,6 @@ urlpatterns = patterns('',
     url(r'^customer/(\d+)/summon/$', 'buzme.views.summon_customer'),
     url(r'^customer/(\d+)/remove/$', 'buzme.views.remove_customer'),
     url(r'^customer/(\d+)/checkin/$', 'buzme.views.checkin_customer'),
-    url(r'^customers/create_in_waitlist/(\d+)/$', 'buzme.views.add_customer_to_waitlist'),
     
     # Waitlist urls
     url(r'^waitlist/signout/$', 'buzme.views.signout'),

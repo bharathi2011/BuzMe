@@ -35,18 +35,28 @@ class UTC(tzinfo):
     def dst(self, dt):
         return ZERO
 
+class AddPatronForm(forms.Form):
+    name        = forms.CharField(label="icon-user", max_length=30,
+                                  widget=forms.TextInput(attrs={'placeholder': 'Patron Name'}))
+    phone       = forms.CharField(label="icon-iphone",
+                                   widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}))
+    party_size  = forms.IntegerField(label="icon-group", initial=2, min_value=1, max_value=100,
+                                   widget=forms.TextInput(attrs={'placeholder': 'Party Size'}))
+    #email       = forms.EmailField(label="icon-envelope",
+    #                               widget=forms.TextInput(attrs={'placeholder': 'Email'}))
+
 
 class UpdateProfileForm(forms.Form):
     username    = forms.CharField(label="icon-user", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'Login ID'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Username'}))
     email       = forms.EmailField(label="icon-envelope",
-                                   widget=forms.TextInput(attrs={'placeholder': 'Email'}))
+                                   widget=forms.TextInput(attrs={'placeholder': 'email'}))
     nickname    = forms.CharField(label="icon-star", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'User Name'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Nickname'}))
     restname    = forms.CharField(label="icon-glass",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home",
-                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Address'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
 
 class SignupProfileForm(UpdateProfileForm):
     password    = forms.CharField(label="icon-asterisk", max_length=30,
@@ -82,24 +92,6 @@ def summon_customer(request, customer_id):
 @login_required(login_url='/')
 def remove_customer(request, customer_id):
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.REMOVED)
-
-@login_required(login_url='/')
-def add_customer_to_waitlist(request, waitlist_id):
-    valid, err_msg = valid_customer_creation_parameters(request)
-    if not valid:
-        request.session['err_msg'] = err_msg
-        return redirect('/waitlist/current/')
-    name = request.POST['name']
-    party_size = request.POST['party_size']
-    phone = None
-    if 'phone' in request.POST:
-        phone = request.POST['phone']
-    wl = get_object_or_404(WaitList, pk=waitlist_id)
-    c = Customer(name=name, party_size=party_size, phone=phone, waitlist=wl, dateTag="current")
-    c.save()
-    ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
-    ract.save()
-    return redirect('/waitlist/current/')
 
 # Helper for summon_customer and remove_customer
 def set_customer_status(request, customer_id, status):
@@ -249,6 +241,25 @@ def update_profile(request):
 
 @login_required(login_url='/')
 def waitlist(request, datetag):
+    if request.method == 'POST':
+        #valid, err_msg = valid_customer_creation_parameters(request)
+        patron_form = AddPatronForm(request.POST)
+        if patron_form.is_valid():
+            name       = patron_form.cleaned_data['name']
+            party_size = patron_form.cleaned_data['party_size']
+            phone      = patron_form.cleaned_data['phone']
+            rstrnt = request.user.restaurantAdminUser.restaurant
+            wl = rstrnt.waitlists.all()[0]
+            c = Customer(name=name, party_size=party_size, phone=phone, waitlist=wl, dateTag="current")
+            c.save()
+            ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
+            patron_form = AddPatronForm()
+        else:
+            request.session['err_msg'] = "please correct add patron input"
+    else:
+        patron_form = AddPatronForm()
+   
     err_msg = None
     if 'err_msg' in request.session:
         err_msg = request.session['err_msg']
@@ -310,6 +321,7 @@ def waitlist(request, datetag):
          'restaurant':rstrnt, 
          'admin':rstrnt.restaurantAdministrator.all()[0],
          'updateFormObj':form,
+         'addPatronFormObj':patron_form,
          'datetag':datetag,
          'activities':RecentActivity.objects.filter(restaurant__exact=rstrnt).filter(dateTag__exact=datetag),
          'customers':Customer.objects.filter(waitlist__exact=rstrnt.waitlists.all()[0]).filter(dateTag__exact=datetag),
@@ -377,9 +389,11 @@ def test_add(request, inputd, inputp, es):
         if randint(1, 10) % 4 == 0:
             d1 = startd + timedelta(minutes=((randint(0, day - 1) * 1440) + randint(17 * 60, 23 * 60) + gmtoffset))
             c = Customer(name=n, party_size=ps, phone=p, waitlist=wl, dateTag="current", activityTime=d1)
+            c.save()
             c.activityTime = d1
             c.save()
             ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
             ract.activityTime = d1
             ract.save()
             maxusers = maxusers - 1
@@ -416,6 +430,7 @@ def test_add(request, inputd, inputp, es):
             c.status = midstate
             c.save()
             ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
             ract.activityTime = d1
             ract.save()
 
@@ -424,6 +439,7 @@ def test_add(request, inputd, inputp, es):
             c.status = endstate
             c.save()
             ract = RecentActivity(activity=c.status, customer=c, restaurant=wl.restaurant, dateTag="current")
+            ract.save()
             ract.activityTime = d1
             ract.save()
     log("redirecting from test_add")

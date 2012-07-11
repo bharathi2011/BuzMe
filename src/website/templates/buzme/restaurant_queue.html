@@ -162,33 +162,22 @@
 
       {% if datetag == "current" %}
         <div class="span3">
-<form class="well form-vertical" action="/customers/create_in_waitlist/{{ waitlist.id }}/" method="post">
+<form class="well form-vertical" action="/waitlist/current/" method="post">
   <fieldset>
     <legend>Add Patron</legend>
     <div class="control-group">
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" placeholder="patron name" name="name"> 
-       </div>
-      </div>
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-iphone"></i></span><input type="text" id="input02" placeholder="phone" name="phone"> 
-       </div>
-      </div>
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-envelope"></i></span><input type="text" placeholder="email"> 
+       {% csrf_token %}
+       {{ addPatronFormObj.non_field_errors }}
+       {% for field in addPatronFormObj %}
+        <div class="controls"> 
+          <div class="input-prepend">
+           <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
+          {{ field.errors }}
+         </div>
         </div>
-      </div>
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-group"></i></span><input type="text" id="input04" placeholder="group size" name="party_size"> 
-        </div>
-      </div>
+       {% endfor %}
     </div>
   </fieldset>
-	{% csrf_token %}
     <div class="btn-group">
     <div class="pull-right">
       <button type="submit" class="btn btn-info btn-large pull-right">Add</button>
