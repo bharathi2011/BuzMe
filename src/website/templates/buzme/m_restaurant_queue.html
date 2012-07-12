@@ -151,7 +151,7 @@
       <div class="container-fluid">
       <div class="row-fluid">
 
-<form class="well form-vertical" action="/customers/create_in_waitlist/{{ waitlist.id }}/" method="post">
+<form class="well form-vertical" action="/waitlist/current/" method="post">
   <fieldset>
     <div class="control-group">
    <div class="span5">
@@ -160,6 +160,7 @@
          <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" placeholder="patron name" name="name"> 
        </div>
       </div>
+          {{ addPatronFormObj.name.errors }}
    </div>
    <div class="span3">
       <div class="controls"> 
@@ -167,6 +168,7 @@
          <span class="add-on"><i class="icon-iphone"></i></span><input class="input-small" type="text" id="input02" placeholder="phone" name="phone"> 
        </div>
       </div>
+          {{ addPatronFormObj.phone.errors }}
    </div>
    <div class="span2">
       <div class="controls"> 
@@ -174,6 +176,7 @@
          <span class="add-on"><i class="icon-group"></i></span><input class="input-mini" type="text" id="input04" placeholder="group size" name="party_size"> 
         </div>
       </div>
+          {{ addPatronFormObj.name.errors }}
    </div>
    </div>
 	{% csrf_token %}
