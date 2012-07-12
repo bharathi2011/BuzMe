@@ -63,7 +63,7 @@
     <div class="modal-body">
      <div class="well"> <form id="updateform" action="/update/" method=POST>
 	{% csrf_token %}
-       {% for field in signupFormObj %}
+       {% for field in updateFormObj %}
           <div class="input-prepend">
            <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
         </div>
@@ -154,32 +154,25 @@
 <form class="well form-vertical" action="/waitlist/current/" method="post">
   <fieldset>
     <div class="control-group">
-   <div class="span5">
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-user"></i></span><input type="text" id="input01" placeholder="patron name" name="name"> 
-       </div>
-      </div>
-          {{ addPatronFormObj.name.errors }}
-   </div>
-   <div class="span3">
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-iphone"></i></span><input class="input-small" type="text" id="input02" placeholder="phone" name="phone"> 
-       </div>
-      </div>
-          {{ addPatronFormObj.phone.errors }}
-   </div>
-   <div class="span2">
-      <div class="controls"> 
-        <div class="input-prepend">
-         <span class="add-on"><i class="icon-group"></i></span><input class="input-mini" type="text" id="input04" placeholder="group size" name="party_size"> 
+       {% csrf_token %}
+       {{ addPatronFormObj.non_field_errors }}
+       {% for field in addPatronFormObj %}
+         {%if field.html_name == "name" %}
+        <div class="span4">
+         {%elif field.html_name == "phone" %}
+        <div class="span3">
+         {%else %}
+        <div class="span2">
+         {%endif %}
+        <div class="controls"> 
+          <div class="input-prepend">
+           <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
+          {{ field.errors }}
+         </div>
         </div>
-      </div>
-          {{ addPatronFormObj.name.errors }}
-   </div>
-   </div>
-	{% csrf_token %}
+        </div>
+       {% endfor %}
+        </div>
     <div class="span2 btn-group">
       <button type="submit" class="btn btn-info ">Add</button>
       <button type="reset" class="btn ">Clear</button>

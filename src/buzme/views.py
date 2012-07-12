@@ -40,7 +40,7 @@ class AddPatronForm(forms.Form):
                                   widget=forms.TextInput(attrs={'placeholder': 'Patron Name'}))
     phone       = forms.CharField(label="icon-iphone",
                                    widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}))
-    party_size  = forms.IntegerField(label="icon-group", initial=2, min_value=1, max_value=100,
+    party_size  = forms.IntegerField(label="icon-group", min_value=1, max_value=100,
                                    widget=forms.TextInput(attrs={'placeholder': 'Party Size'}))
     #email       = forms.EmailField(label="icon-envelope",
     #                               widget=forms.TextInput(attrs={'placeholder': 'Email'}))
@@ -48,15 +48,15 @@ class AddPatronForm(forms.Form):
 
 class UpdateProfileForm(forms.Form):
     username    = forms.CharField(label="icon-user", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'Username'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'LoginID'}))
     email       = forms.EmailField(label="icon-envelope",
-                                   widget=forms.TextInput(attrs={'placeholder': 'email'}))
+                                   widget=forms.TextInput(attrs={'placeholder': 'Email'}))
     nickname    = forms.CharField(label="icon-star", max_length=30,
-                                  widget=forms.TextInput(attrs={'placeholder': 'Nickname'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'User Name'}))
     restname    = forms.CharField(label="icon-glass",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home",
-                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Contact'}))
+                                  widget=forms.TextInput(attrs={'placeholder': 'Restaurant Address'}))
 
 class SignupProfileForm(UpdateProfileForm):
     password    = forms.CharField(label="icon-asterisk", max_length=30,
@@ -314,6 +314,9 @@ def waitlist(request, datetag):
     tfile = 'buzme/restaurant_queue.html'
     if (get_flavour() == "mobile"):
         tfile = 'buzme/m_restaurant_queue.html'
+        patron_form.fields['name'].widget.attrs['class'] = "input-medium"
+        patron_form.fields['phone'].widget.attrs['class'] = "input-small"
+        patron_form.fields['party_size'].widget.attrs['class'] = "input-mini"
     
     log("rendering waitlist")
     return render(request, tfile, {
