@@ -17,6 +17,9 @@ import qrcode
 import os, binascii
 from django_mobile import get_flavour
 from validators import valid_customer_creation_parameters
+from django import forms
+from django.contrib.localflavor.us.forms import USPhoneNumberField
+
 
 viewlog = open("views.log","wb")
 def log(msg):
@@ -38,7 +41,7 @@ class UTC(tzinfo):
 class AddPatronForm(forms.Form):
     name        = forms.CharField(label="icon-user", max_length=30,
                                   widget=forms.TextInput(attrs={'placeholder': 'Patron Name'}))
-    phone       = forms.CharField(label="icon-iphone",
+    phone       = USPhoneNumberField(label="icon-iphone",
                                    widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}))
     party_size  = forms.IntegerField(label="icon-group", min_value=1, max_value=100,
                                    widget=forms.TextInput(attrs={'placeholder': 'Party Size'}))
@@ -57,12 +60,27 @@ class UpdateProfileForm(forms.Form):
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Address'}))
-
 class SignupProfileForm(UpdateProfileForm):
     password    = forms.CharField(label="icon-asterisk", max_length=30,
                                   widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
     password1   = forms.CharField(label="icon-asterisk", max_length=30,
                                   widget=forms.PasswordInput(attrs={'placeholder': 'Retype Password'}))
+    def clean_password1(self):
+        password = self.cleaned_data.get('password')
+        password1 = self.cleaned_data.get('password1')
+        if password and password1:
+            if password != password1:
+                raise forms.ValidationError(("The two password fields didn't match."))
+        return password1
+    def clean_username(self):
+       username = self.cleaned_data['username']
+       try:
+          user = User.objects.get(username=username)
+       except User.DoesNotExist:
+          return username
+       raise forms.ValidationError(u'%s already exists' % username )
+
+
 
 def debug_customers_all(request):
     return render_to_response('buzme/debug_customers.html',
@@ -255,8 +273,8 @@ def waitlist(request, datetag):
             ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
             ract.save()
             patron_form = AddPatronForm()
-        else:
-            request.session['err_msg'] = "please correct add patron input"
+#        else:
+#            request.session['err_msg'] = "please correct add patron input"
     else:
         patron_form = AddPatronForm()
    

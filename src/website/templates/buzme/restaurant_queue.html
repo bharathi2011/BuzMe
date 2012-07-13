@@ -68,9 +68,17 @@
        {% for field in updateFormObj %}
           <div class="input-prepend">
            <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
-           {{ field.errors }}
-        </div>
-       {% endfor %}
+           {% for error in field.errors %}
+           <span class="help-inline"> 
+              <!--- <span class="label label-important">{{ error }}</span> --->
+              <div class="alert alert-error">
+                 <a class="close" data-dismiss="alert" href="#">×</a> 
+                 {{ error }} 
+              </div>
+           </span>
+           {% endfor %}
+       </div>
+      {% endfor %}
      </form> 
      <img src="/static/qrcodes/{{restaurant.qrfile}}" height="100" width="100" />
 
@@ -101,10 +109,10 @@
                <b class="caret"></b>
              </a>
              <ul class="dropdown-menu">
-               <li><a href="/waitlist/current/">Load Current</a></li>
+               <li><a href="/waitlist/current/">View Current</a></li>
                <li class="divider"></li>
                <li><a href="/archive_current/">Archive Now</a></li>
-               <li><a href="/waitlist/archives/unprocessed/">Load Archives</a></li>
+               <li><a href="/waitlist/archives/unprocessed/">View Archives</a></li>
              </ul>
            </li>
            <li class="dropdown" id="TestMenu">
@@ -172,7 +180,15 @@
         <div class="controls"> 
           <div class="input-prepend">
            <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
-          {{ field.errors }}
+           {% for error in field.errors %}
+           <span class="help-inline"> 
+              <!--- <span class="label label-important">{{ error }}</span> --->
+              <div class="alert alert-error">
+                 <a class="close" data-dismiss="alert" href="#">×</a> 
+                 {{ error }} 
+              </div>
+           </span>
+           {% endfor %}
          </div>
         </div>
        {% endfor %}
@@ -268,9 +284,9 @@
  
 
          <table id="rstrntQ" class="table table-condensed table-striped" width="100%">
-             <th width="30%"> patron </th>
-             <th width="10%"> party of </th>
-             <th width="20%"> status </th>
+             <th width="30%"> Patron </th>
+             <th width="10%"> Party Size </th>
+             <th width="20%"> Status </th>
            {% if customers %}
            {% for customer in customers|dictsort:"status" %}
              <tr>

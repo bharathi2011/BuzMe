@@ -66,6 +66,9 @@
        {% for field in updateFormObj %}
           <div class="input-prepend">
            <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
+           {% for error in field.errors %}
+              <span class="label label-important">{{ error }}</span>
+           {% endfor %}
         </div>
        {% endfor %}
      </form> 
@@ -167,7 +170,9 @@
         <div class="controls"> 
           <div class="input-prepend">
            <span class="add-on"><i class="{{field.label}}"></i></span>{{field}}
-          {{ field.errors }}
+           {% for error in field.errors %}
+              <span class="label label-important">{{ error }}</span>
+           {% endfor %}
          </div>
         </div>
         </div>
