@@ -1,6 +1,7 @@
 # Create your views here.
 from django.shortcuts import render, render_to_response, get_object_or_404, redirect
 from django.http import HttpResponse
+from django.core.mail import send_mail
 from models import Customer, WaitList, Restaurant, RestaurantAdmin, RecentActivity, ArchiveTag, Analytics
 from django.contrib import auth
 from django.views.decorators.csrf import csrf_protect
@@ -19,6 +20,7 @@ from django_mobile import get_flavour
 from validators import valid_customer_creation_parameters
 from django import forms
 from django.contrib.localflavor.us.forms import USPhoneNumberField
+from subprocess import Popen, PIPE
 
 
 viewlog = open("views.log","wb")
@@ -41,25 +43,42 @@ class UTC(tzinfo):
 class AddPatronForm(forms.Form):
     name        = forms.CharField(label="icon-user", max_length=30,
                                   widget=forms.TextInput(attrs={'placeholder': 'Patron Name'}))
-    phone       = USPhoneNumberField(label="icon-iphone",
-                                   widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}))
     party_size  = forms.IntegerField(label="icon-group", min_value=1, max_value=100,
                                    widget=forms.TextInput(attrs={'placeholder': 'Party Size'}))
-    #email       = forms.EmailField(label="icon-envelope",
-    #                               widget=forms.TextInput(attrs={'placeholder': 'Email'}))
+    phone       = USPhoneNumberField(label="icon-iphone",
+                                   widget=forms.TextInput(attrs={'placeholder': 'Phone Number'}),
+                                   required=False)
+    email       = forms.EmailField(label="icon-envelope",
+                                   widget=forms.TextInput(attrs={'placeholder': 'Email'}),
+                                   required=False)
+    def clean(self):
+        cleaned_data = super(AddPatronForm, self).clean()
+        phone = cleaned_data.get("phone")
+        email = cleaned_data.get("email")
+        if (not phone) and (not email):
+           raise forms.ValidationError("Either a phone number or an e-mail address is required.")
+        return cleaned_data
 
 
 class UpdateProfileForm(forms.Form):
     username    = forms.CharField(label="icon-user", max_length=30,
                                   widget=forms.TextInput(attrs={'placeholder': 'LoginID'}))
     email       = forms.EmailField(label="icon-envelope",
-                                   widget=forms.TextInput(attrs={'placeholder': 'Email'}))
+                                   widget=forms.TextInput(attrs={'placeholder': 'Contact Email'}))
     nickname    = forms.CharField(label="icon-star", max_length=30,
                                   widget=forms.TextInput(attrs={'placeholder': 'User Name'}))
     restname    = forms.CharField(label="icon-glass",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Name'}))
     restcontact = forms.CharField(label="icon-home",
                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant Address'}))
+    email_from    = forms.EmailField(label="",
+                                   widget=forms.TextInput(attrs={'placeholder': 'Restaurant\'s Email'}))
+    email_subject = forms.CharField(label="",
+                                  widget=forms.TextInput(attrs={'placeholder': 'Email Subject'}))
+    email_message = forms.CharField(label="",
+                                  widget=forms.Textarea(attrs={'placeholder': 'Email Message'}))
+
+
 class SignupProfileForm(UpdateProfileForm):
     password    = forms.CharField(label="icon-asterisk", max_length=30,
                                   widget=forms.PasswordInput(attrs={'placeholder': 'Password'}))
@@ -93,19 +112,62 @@ def checkin_customer(request, customer_id):
 @login_required(login_url='/')
 def summon_customer(request, customer_id):
     c = get_object_or_404(Customer, pk=customer_id)
-    if (not c.phone) or (c.phone is ""):
-        request.session['err_msg'] = "PLEASE SUMMON %s, PARTY OF %d YOURSELF. They did not leave a phone number." % (c.name, c.party_size)
+    has_phone = c.phone and (not c.phone == "")
+    has_email = c.email and (not c.email == "")
+    phone_failed = False
+    email_failed = False
+    if (not has_phone) and (not has_email):
+        request.session['err_msg'] = "PLEASE SUMMON %s, PARTY OF %d YOURSELF. They did not leave a phone number or e-mail address." % (c.name, c.party_size)
         return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
-    else:
-        client = TwilioRestClient()
+
+    if (has_phone):
+        if c.is_test():
+            request.session['test_sms_msg'] = "Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name)
+        else:
+            client = TwilioRestClient()
+            try:
+                client.sms.messages.create(to=c.phone, from_="+14086001289",
+                                           body="Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name))
+            except TwilioRestException:
+                phone_failed = True
+                return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
+
+    if (has_email):
         try:
-            client.sms.messages.create(to=c.phone, from_="+14086001289",
-                                       body="Hello %s. Your table at %s is ready. Please come by." % (c.name, c.waitlist.restaurant.name))
-        except TwilioRestException:
-            request.session['err_msg'] = "PLEASE SUMMON %s, PARTY OF %d YOURSELF. The phone number they left was invalid." % (c.name, c.party_size) 
-            return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
-      
+            r = request.user.restaurantAdminUser.restaurant
+            if c.is_test():
+                request.session['test_email_msg'] = r.email_message.replace("[CUSTOMER]", c.name) 
+            else:
+                send_mail(
+                    r.email_subject, 
+                    r.email_message.replace("[CUSTOMER]", c.name), 
+                    r.email_from,
+                    [c.email],
+                    fail_silently=False
+                )    
+                log ("sent mail to %s from %s" % (c.email, r.email_from))
+        except Exception as e:
+            if c.is_test():
+                print e
+            else:
+                log(e)
+            email_failed = True
+
+    total_failure = ((not has_phone) or (has_phone and phone_failed)) and ((not has_email) or (has_email and email_failed))
+    err_msg = "" 
+    if total_failure:
+        err_msg = "PLEASE SUMMON %s, PARTY OF %d YOURSELF." % (c.name, c.party_size) 
+    if phone_failed:
+        err_msg += " The phone number they left was invalid."
+    if email_failed:
+        err_msg += " The e-mail failed to send."
+    if err_msg != "":
+        request.session['err_msg'] = err_msg # show error messages for failed modes of communication even on success
+
+    if total_failure:
+        return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMON_FAILED)
     return set_customer_status(request, customer_id, Customer.CUSTOMER_STATUS.SUMMONED)
+
 
 @login_required(login_url='/')
 def remove_customer(request, customer_id):
@@ -155,7 +217,7 @@ def signin_new(request):
     
     if username and password:
         user = auth.authenticate(username=username, password=password)
-        if (user is None):
+        if (user == None):
             failmsg = 'Authentication failed'
         elif user.is_active:
             auth.login(request, user)
@@ -180,6 +242,9 @@ def signup(request):
         nname = form.cleaned_data['nickname']
         rname = form.cleaned_data['restname']
         rcinfo = form.cleaned_data['restcontact']
+        email_from = form.cleaned_data['email_from']
+        email_subject = form.cleaned_data['email_subject']
+        email_message = form.cleaned_data['email_message']
     else:
         return render_to_response('buzme/login_page.html', 
                                   {'signupFormObj':form, 'signup_view':'yes'}, 
@@ -210,7 +275,8 @@ def signup(request):
             break
     
     img.save("buzme/static/qrcodes/%s" % (fname))
-    r = Restaurant(name=rname, contactinfo=rcinfo, client_gmt_offset=0, qrfile=fname)
+    r = Restaurant(name=rname, contactinfo=rcinfo, client_gmt_offset=0, qrfile=fname,
+                   email_from=email_from, email_subject=email_subject, email_message=email_message)
     r.save()
     ra = RestaurantAdmin(nick=nname, adminuser=u, restaurant=r)
     ra.save()
@@ -229,13 +295,7 @@ def update_profile(request):
     if (get_flavour() == "mobile"):
         tfile = 'buzme/m_restaurant_queue.html'
 
-    if form.is_valid():
-        #uname  = form.cleaned_data['username']
-        uemail = form.cleaned_data['email']
-        nname  = form.cleaned_data['nickname']
-        rcinfo = form.cleaned_data['restcontact']
-        rname  = form.cleaned_data['restname']
-    else:
+    if not form.is_valid():
         return render(request, tfile, {
          'waitlist':r.waitlists.all()[0],
          'modal_view':'update_profile',
@@ -245,12 +305,13 @@ def update_profile(request):
          'err_msg':"error updating profile"
           })
 
-
-    
-    ra.nick = nname;
-    r.contactinfo = rcinfo;
-    r.name = rname;
-    u.email = uemail;
+    ra.nick = form.cleaned_data['nickname']
+    r.contactinfo = form.cleaned_data['restcontact']
+    r.name = form.cleaned_data['restname']
+    r.email_from = form.cleaned_data['email_from']
+    r.email_subject = form.cleaned_data['email_subject']
+    r.email_message = form.cleaned_data['email_message']
+    u.email = form.cleaned_data['email']
     r.save();
     ra.save();
     u.save();
@@ -266,15 +327,14 @@ def waitlist(request, datetag):
             name       = patron_form.cleaned_data['name']
             party_size = patron_form.cleaned_data['party_size']
             phone      = patron_form.cleaned_data['phone']
+            email      = patron_form.cleaned_data['email']
             rstrnt = request.user.restaurantAdminUser.restaurant
             wl = rstrnt.waitlists.all()[0]
-            c = Customer(name=name, party_size=party_size, phone=phone, waitlist=wl, dateTag="current")
+            c = Customer(name=name, party_size=party_size, phone=phone, email=email, waitlist=wl, dateTag="current")
             c.save()
             ract = RecentActivity(activity=Customer.CUSTOMER_STATUS.WAITING, customer=c, restaurant=wl.restaurant, dateTag="current")
             ract.save()
             patron_form = AddPatronForm()
-#        else:
-#            request.session['err_msg'] = "please correct add patron input"
     else:
         patron_form = AddPatronForm()
    
@@ -282,6 +342,8 @@ def waitlist(request, datetag):
     if 'err_msg' in request.session:
         err_msg = request.session['err_msg']
         del request.session['err_msg']
+        if err_msg == "":
+            err_msg = None
     rstrnt = request.user.restaurantAdminUser.restaurant
     wl = rstrnt.waitlists.all()[0]
     form = UpdateProfileForm({
@@ -290,6 +352,9 @@ def waitlist(request, datetag):
             'nickname': request.user.restaurantAdminUser.nick,
             'restname': rstrnt.name,
             'restcontact': rstrnt.contactinfo,
+            'email_from': rstrnt.email_from,
+            'email_subject': rstrnt.email_subject,
+            'email_message': rstrnt.email_message,
        })
     form.fields['username'].widget.attrs['readonly'] = True
 
@@ -335,8 +400,8 @@ def waitlist(request, datetag):
         patron_form.fields['name'].widget.attrs['class'] = "input-medium"
         patron_form.fields['phone'].widget.attrs['class'] = "input-small"
         patron_form.fields['party_size'].widget.attrs['class'] = "input-mini"
+        patron_form.fields['email'].widget.attrs['class'] = "input-small"
     
-    log("rendering waitlist")
     return render(request, tfile, {
          'waitlist':rstrnt.waitlists.all()[0],
          'restaurant':rstrnt, 

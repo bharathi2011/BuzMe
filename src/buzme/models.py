@@ -8,6 +8,7 @@ class Customer (models.Model):
         WAITING, SUMMON_FAILED, SUMMONED, CHECKEDIN, REMOVED = range(5)
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=10)
+    email = models.EmailField()
     party_size = models.PositiveSmallIntegerField()
     waitlist = models.ForeignKey('WaitList', related_name='customers')
     dateTag = models.CharField(max_length=20)
@@ -31,6 +32,8 @@ class Customer (models.Model):
         return self.status == Customer.CUSTOMER_STATUS.REMOVED
     def is_checkedin(self):
         return self.status == Customer.CUSTOMER_STATUS.CHECKEDIN
+    def is_test(self):
+        return (self.phone == "0000000000") or (self.email == "TEST@TEST.TEST") #sentinel values that show we're running in the test framework
     
 
 class WaitList (models.Model):
@@ -50,6 +53,10 @@ class Restaurant (models.Model):
     contactinfo       = models.CharField(max_length=200)
     qrfile            = models.CharField(max_length=50)
     client_gmt_offset = models.SmallIntegerField()
+    email_message     = models.TextField(max_length=1000)
+    email_subject     = models.CharField(max_length=200)
+    email_from        = models.EmailField()
+    
     def __unicode__(self):
         return self.name
     def add_waitinglist(self, waitlist):
